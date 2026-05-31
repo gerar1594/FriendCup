@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { App } from '../../app';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root',
@@ -8,7 +9,7 @@ import { App } from '../../app';
 export class MatchesService {
 
     private http = inject(HttpClient);
-    private API_URL = App.API_URI + '/match';
+    private API_URL = environment.apiUri + '/match';
 
     getMatchesByUser(userId: any) {
         return this.http.get<any>(`${this.API_URL}/user/${userId}`);

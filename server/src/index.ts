@@ -25,7 +25,11 @@ class Server{
     config(): void{
         this.app.set("port", process.env.PORT || 3000);
         this.app.use(morgan('dev'));
-        this.app.use(cors());
+        this.app.use(cors({
+            origin: '*', // Permitir cualquier origen (ideal para asegurarte de que móvil/tablet entran)
+            methods: ['GET', 'POST', 'PUT', 'DELETE'],
+            allowedHeaders: ['Content-Type', 'Authorization']
+        }));
         this.app.use(express.json());
         this.app.use(express.urlencoded({extended:false}));
     }

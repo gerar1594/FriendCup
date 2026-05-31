@@ -3,6 +3,7 @@ import { effect, inject, Injectable, signal } from '@angular/core';
 import { App } from '../../app';
 import { Observable, Subject, tap } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root',
@@ -12,7 +13,7 @@ export class LeaguesService {
     
     private http = inject(HttpClient);
     private authService = inject(AuthService);
-    private API_URL = App.API_URI + '/league';
+    private API_URL = environment.apiUri + '/league';
 
     // 📣 Creamos el emisor de eventos
     private refreshLeagues$ = new Subject<void>();

@@ -13,8 +13,6 @@ import { Toast } from "./components/toast/toast";
 })
 export class App implements OnInit {
     protected readonly title = signal('client');
-    static API_URI = 'http://localhost:3000/api';
-    //static API_URI = 'https://friendcup-production.up.railway.app:8080/api';
     private leaguesService = inject(LeaguesService);
     authService = inject(AuthService);
     
