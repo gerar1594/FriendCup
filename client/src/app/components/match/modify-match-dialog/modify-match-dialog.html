@@ -1,0 +1,65 @@
+<div class="dialog-overlay" (click)="close()">
+    <div class="dialog-content" (click)="$event.stopPropagation()">
+        
+        <div class="dialog-header">
+        <div class="sport-badge">{{ match().NameSport }}</div>
+        <h2>Actualizar Marcador</h2>
+        <p>Jornada {{ match().DayTrip }} — {{ match().NameLeague }}</p>
+        </div>
+
+        <div class="teams-header">
+        <div class="team-name">{{ match().JugadoresLocal }}</div>
+        <div class="vs-circle">VS</div>
+        <div class="team-name">{{ match().JugadoresVisitante }}</div>
+        </div>
+
+        <form (ngSubmit)="save()" class="score-form">
+        <div class="periods-container">
+            <div class="labels-row">
+            <span></span> <span class="col-label">Local</span>
+            <span></span>
+            <span class="col-label">Visitante</span>
+            </div>
+
+            @for (periodo of formPeriodos(); track $index) {
+            <div class="period-row">
+                <div class="period-tag">{{ periodo.label }}</div>
+                
+                <input type="number" 
+                    [(ngModel)]="periodo.local" 
+                    (ngModelChange)="notificarCambio()"
+                    name="local-{{$index}}" 
+                    min="0" 
+                    required>
+
+                <span class="dash"></span>
+
+                <input type="number" 
+                    [(ngModel)]="periodo.visitante"
+                    (ngModelChange)="notificarCambio()"
+                    name="visitante-{{$index}}" 
+                    min="0" 
+                    required>
+            </div>
+            }
+            <div class="period-row">
+                <div class="period-tag">Total</div>
+                <div class="score-box-local">
+                    <span class="score-num">{{ totalLocalCalculado() }}</span>
+                </div>
+                <span class="dash"></span>
+
+                <div class="score-box-visitante">
+                    <span class="score-num">{{ totalVisitanteCalculado() }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dialog-actions">
+            <button type="button" class="btn-cancel" (click)="close()">Cancelar</button>
+            <button type="submit" class="btn-save">Finalizar Partido</button>
+        </div>
+        </form>
+
+    </div>
+</div>

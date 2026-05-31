@@ -1,0 +1,15 @@
+<div class="my-matches-container">
+    <h1>⚽ Mis Partidos Clasificatorios</h1>
+
+    <div class="matches-grid">
+        @for (match of myMatches(); track match.IDMatch) {
+        <app-match-card 
+            [match]="match" 
+            [showDatails]="true"
+            (openEditModal)="selectedMatch.set($event)"
+            (loadMatches)="loadUserMatches()">
+        </app-match-card>
+        }
+    </div>
+
+</div>

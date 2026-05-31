@@ -1,0 +1,38 @@
+<!--<nav class="navbar">
+    <div class="navbar-logo">
+        <a routerLink="/">FriendCup 🏆</a>
+    </div>
+
+    
+</nav>-->
+<nav class="navbar">
+    <div class="navbar-logo"><a routerLink="/">FriendCup 🏆</a></div>
+
+    <ul class="navbar-links">
+        @if (this.authService.isLoggedIn()) {
+                <li class="dropdown">
+                    <a class="dropdown-trigger">Mis Ligas ▼</a>
+                    <ul class="dropdown-menu">
+                        @for (league of leaguesService.userLeagues(); track league.IDLeague) {
+                            <li>
+                                <a [routerLink]="['/league', league.IDLeague]">{{ league.NameLeague }}</a>
+                            </li>
+                        } @empty {
+                            <li><span class="no-data">No estás en ninguna liga</span></li>
+                        }
+                        <li><a routerLink="/leagues/manage" class="manage-link">Administrar Ligas</a></li>
+                    </ul>
+                </li>
+
+                <li class="dropdown">
+                    <a routerLink="/my-matches" class="dropdown-trigger">Mis Partidos</a>
+                </li>
+            <li><span> {{ authService.currentUser().nombre }}</span></li>
+            <li class="dropdown"> </li>
+            <li><button (click)="authService.logout()" class="btn-logout">Salir</button></li>
+        } 
+        @else {
+            <li><a routerLink="/login" class="btn-login">Iniciar Sesión / Registro</a></li>
+        }
+    </ul>
+</nav>

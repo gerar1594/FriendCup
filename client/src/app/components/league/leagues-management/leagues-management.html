@@ -1,0 +1,53 @@
+<div class="management-container">
+  
+    <div class="action-card">
+        <h2>➕ Crear Nueva Liga</h2>
+        <p>Monta un torneo dinámico en pocos segundos.</p>
+        
+        <form (ngSubmit)="onCreateLeague()">
+            <div class="form-group">
+                <label>Nombre de la Liga</label>
+                <input type="text" [(ngModel)]="createData.NameLeague" name="nameLeague" placeholder="Ej: Torneo Clausura Padel" required>
+            </div>
+
+            <div class="form-group">
+                <label for="sportSelect">Selecciona el Deporte:</label>
+                <select 
+                    id="sportSelect" 
+                    [(ngModel)]="createData.IDSport" 
+                    name="IDSport" 
+                    required>
+                    <option value="" disabled selected>-- Elige un deporte --</option>
+                    @for (sport of sports(); track sport.IDSport) {
+                        <option [value]="sport.IDSport">
+                            {{ sport.NameSport }}
+                        </option>
+                    } @empty {
+                        <option value="" disabled>Cargando deportes disponibles...</option>
+                    }
+                </select>
+            </div>
+
+            <button type="submit" [disabled]="!createData.NameLeague || !createData.IDSport " class="btn-create">
+                Crear Liga
+            </button>
+        </form>
+    </div>
+
+    <div class="action-card join-card">
+        <h2>🏆 Entrar a una Liga con Código</h2>
+        <p>Introduce el código de invitación de 6 dígitos que te pasaron.</p>
+        
+        <form (ngSubmit)="onJoinLeague()">
+            <div class="form-group">
+                <label>Código de Invitación</label>
+                <input type="text" [(ngModel)]="invitationCodeInput" name="invitationCode" placeholder="Ej: TR89XM" maxlength="10" class="code-input" required>
+            </div>
+
+            <button type="submit" [disabled]="invitationCodeInput.length < 5" class="btn-join">
+                Unirse al Torneo
+            </button>
+        </form>
+    </div>
+
+</div>

@@ -1,0 +1,103 @@
+<div class="match-card" [class.finalizado]="match().Estado === 'Jugado'">
+    @if (showDatails()) {
+        <div class="card-header">
+            <span class="sport-tag">{{ match().NameSport }}</span>
+            <span class="league-tag">{{ match().NameLeague }}</span>
+            <span class="jornada-tag">Jornada {{ match().DayTrip }}</span>
+        </div>
+    }
+    <div class="scoreboard-table">
+        <div class="table-row header-row">
+            <div class="cell team-cell">Equipo</div>
+            @if (match().Resultado && match().Resultado.periodos) {
+                @for (periodo of match().Resultado.periodos; track $index) {
+                    <div class="cell set-cell">{{ periodo.label }}</div>
+                }
+            } @else {
+                <div class="cell set-cell">S1</div>
+                <div class="cell set-cell">S2</div>
+                <div class="cell set-cell">S3</div>
+            }
+            <div class="cell final-cell">TOT</div>
+        </div>
+
+        <div class="table-row">
+            <div class="cell team-cell name">
+                <span class="dot local-dot"></span> {{ match().JugadoresLocal }}
+            </div>
+            @if (match().Resultado && match().Resultado.periodos) {
+                @for (periodo of match().Resultado.periodos; track $index) {
+                    <div class="cell set-cell score">{{ periodo.local }}</div>
+                }
+            } @else {
+                <div class="cell set-cell score pending">—</div>
+                <div class="cell set-cell score pending">—</div>
+                <div class="cell set-cell score pending">—</div>
+            }
+            <div class="cell final-cell total">
+                {{ match().Resultado.totalLocal }}
+            </div>
+        </div>
+
+        <div class="table-row">
+            <div class="cell team-cell name">
+                <span class="dot visitante-dot"></span> {{ match().JugadoresVisitante }}
+            </div>
+            @if (match().Resultado && match().Resultado.periodos) {
+                @for (periodo of match().Resultado.periodos; track $index) {
+                    <div class="cell set-cell score">{{ periodo.visitante }}</div>
+                }
+            } @else {
+                <div class="cell set-cell score pending">—</div>
+                <div class="cell set-cell score pending">—</div>
+                <div class="cell set-cell score pending">—</div>
+            }
+            <div class="cell final-cell total">
+                {{ match().Resultado.totalVisitante }}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card-actions">
+        <span class="status-indicator" [class.done]="match().Estado === 'Jugado'">
+            @switch( match().Estado ) {
+                @case ("Jugado") {
+                    🟢 Jugado
+                }
+                @case ('Pendiente') {
+                    🟡 Pendiente
+                }
+                @default {
+                    @if(confirmar()){
+                        <button (click)="validateMatch()" class="btn-edit">
+                            🔵 Confirmar
+                        </button>
+                    } @else {
+                        🔵 Confirmando
+                    }
+                }
+            }
+        </span>
+        @if (puedeEditar() && match().Estado !== 'Jugado') {
+            <button (click)="openEditModal()" class="btn-edit">
+                ✏️ 
+                @if(adminMode()) {
+                    Puntuar y validar
+                } @else {
+                    Puntuar
+                }
+            </button>
+
+        }
+    </div>
+
+</div>
+@if (selectedMatch()) {
+    <app-modify-match-dialog
+        [match]="selectedMatch()"
+        [adminMode]="adminMode()"
+        (onClose)="selectedMatch.set(null)"
+        (onSaved)="loadUserMatches()">
+    </app-modify-match-dialog>
+}

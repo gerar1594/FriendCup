@@ -1,0 +1,44 @@
+.management-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    padding: 3rem 1rem;
+    background-color: #f8f9fa;
+    min-height: 80vh;
+
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 450px;
+        box-sizing: border-box;
+
+        h2 { color: #2c3e50; font-size: 1.4rem; margin-top: 0; margin-bottom: 0.5rem; }
+        p { color: #7f8c8d; font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.4; }
+
+        .form-group {
+        margin-bottom: 1.5rem;
+        label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; color: #34495e; }
+        input, select {
+            width: 100%; padding: 0.75rem; border: 1px solid #bdc3c7; border-radius: 6px;
+            font-size: 1rem; box-sizing: border-box; outline: none;
+            &:focus { border-color: #3498db; }
+        }
+        .code-input { text-transform: uppercase; text-align: center; font-size: 1.3rem; letter-spacing: 4px; font-weight: bold; }
+        }
+
+        button {
+        width: 100%; padding: 0.85rem; border: none; border-radius: 6px; font-size: 1rem;
+        font-weight: bold; color: white; cursor: pointer; transition: background 0.2s;
+        &:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        }
+
+        .btn-create { background-color: #3498db; &:hover:not(:disabled) { background-color: #2980b9; } }
+        .btn-join { background-color: #2ecc71; &:hover:not(:disabled) { background-color: #27ae60; } }
+    }
+
+    .join-card { border-top: 4px solid #2ecc71; }
+}

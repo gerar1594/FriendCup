@@ -1,0 +1,11 @@
+@if (notifService.currentToast(); as toast) {
+    <div class="toast-container" [ngClass]="toast.type">
+        <span class="toast-icon">
+            @if (toast.type === 'success') { ✅ }
+            @else if (toast.type === 'error') { ❌ }
+            @else { ℹ️ }
+        </span>
+        <p class="toast-text">{{ toast.text }}</p>
+        <button (click)="notifService.clear()" class="toast-close">×</button>
+    </div>
+}

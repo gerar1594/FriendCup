@@ -1,0 +1,40 @@
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-tabs">
+           <div class="auth-tabs">
+                <button [class.active]="isLoginMode()" (click)="toggleMode()">Entrar</button>
+                <button [class.active]="!isLoginMode()" (click)="toggleMode()">Registrarse</button>
+            </div>
+        </div>
+
+        <h2>{{ isLoginMode() ? '¡Hola de nuevo! ⚽' : 'Únete a FriendCup 🏆' }}</h2>
+
+        @if (errorMessage()) {
+            <div class="alert-error">{{ errorMessage() }}</div>
+        }
+
+        <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+        
+            @if (!isLoginMode()) {
+                <div class="form-group">
+                    <label>Nombre de Jugador</label>
+                    <input type="text" formControlName="Nombre" placeholder="Ej: Gerardo_10">
+                </div>
+            }
+
+            <div class="form-group">
+                <label>Correo Electrónico</label>
+                <input type="email" formControlName="Email" placeholder="correo@ejemplo.com">
+            </div>
+
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" formControlName="Password" placeholder="••••••••">
+            </div>
+
+            <button type="submit" [disabled]="authForm.invalid" class="btn-submit">
+                {{ isLoginMode() ? 'Iniciar Sesión' : 'Crear Cuenta Nueva' }}
+            </button>
+        </form>
+    </div>
+</div>
