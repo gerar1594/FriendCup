@@ -7,7 +7,9 @@
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,  // Esto puede ayudar a evitar problemas de tipos en algunas bibliotecas
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",       // 📌 AQUÍ es donde se guardará el JavaScript compilado
+        "rootDir": "./src",      // 📌 AQUÍ está tu código TypeScript actual
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules"]
