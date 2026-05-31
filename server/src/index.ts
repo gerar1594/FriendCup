@@ -27,7 +27,7 @@ class Server{
         this.app.use(morgan('dev'));
         this.app.use(cors({
             origin: '*', // Permitir cualquier origen (ideal para asegurarte de que móvil/tablet entran)
-            methods: ['GET', 'POST', 'PUT', 'DELETE'],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // 👈 Añade OPTIONS aquí
             allowedHeaders: ['Content-Type', 'Authorization']
         }));
         this.app.use(express.json());
