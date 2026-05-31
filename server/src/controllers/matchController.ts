@@ -17,7 +17,7 @@ class MatchController {
             const [jugadores]: any = await pool.query(
                 `SELECT
                     p.IDPlayer, pl.NamePlayer,
-                    (SELECT COUNT(*) FROM matchPlayer mp
+                    (SELECT COUNT(*) FROM matchplayer mp
                     JOIN matches m ON mp.IDMatch = m.IDMatch
                     WHERE mp.IDPlayer = p.IDPlayer AND m.IDLeague = ?) as totalJugados,
                     (SELECT COALESCE(SUM(points), 0) FROM leagueplayer WHERE IDPlayer = p.IDPlayer AND IDLeague = ?) as puntosLiga
@@ -82,9 +82,9 @@ class MatchController {
 
                     const matchId = resMatch.insertId;
 
-                    // Insertar relación con jugadores (matchPlayer)
+                    // Insertar relación con jugadores (matchplayer)
                     await connection.query(
-                        "INSERT INTO matchPlayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, 'Local'), (?, ?, 'Visitante')",
+                        "INSERT INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, 'Local'), (?, ?, 'Visitante')",
                         [matchId, p.local.IDPlayer, matchId, p.visitante.IDPlayer]
                     );
                 }
@@ -337,17 +337,17 @@ class MatchController {
                 `SELECT DISTINCT m.IDMatch, m.DayTrip, m.JugadoresLocal, m.JugadoresVisitante,
                                 m.Estado, m.Resultado, l.NameLeague, s.*,
                                 (SELECT GROUP_CONCAT(mp_all.IDPlayer)
-                                    FROM matchPlayer mp_all
+                                    FROM matchplayer mp_all
                                     WHERE mp_all.IDMatch = m.IDMatch) AS IDsJugadoresPartido,
                                 (SELECT GROUP_CONCAT(mp_local.IDPlayer SEPARATOR ',')
-                                    FROM matchPlayer mp_local
+                                    FROM matchplayer mp_local
                                     WHERE mp_local.IDMatch = m.IDMatch AND mp_local.Bando = 'Local') AS JugadoresLocalIDs,
 
                                     -- 🏃‍♂️ IDs de los jugadores Visitantes separados por comas
                                 (SELECT GROUP_CONCAT(mp_visit.IDPlayer SEPARATOR ',')
-                                    FROM matchPlayer mp_visit
+                                    FROM matchplayer mp_visit
                                     WHERE mp_visit.IDMatch = m.IDMatch AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteIDs
-                FROM matches m, matchPlayer mp, leagues l, sports s
+                FROM matches m, matchplayer mp, leagues l, sports s
                 WHERE m.IDMatch = mp.IDMatch
                 AND m.IDLeague = l.IDLeague
                 AND l.IDSport = s.IDSport
@@ -378,23 +378,23 @@ class MatchController {
 
                 -- 🏠 IDs de los jugadores Locales estrictamente DE ESTE PARTIDO
                 (SELECT GROUP_CONCAT(mp_local.IDPlayer SEPARATOR ',')
-                FROM matchPlayer mp_local
+                FROM matchplayer mp_local
                 WHERE mp_local.IDMatch = m.IDMatch
                 AND mp_local.Bando = 'Local') AS JugadoresLocalIDs,
 
                 -- 🏃‍♂️ IDs de los jugadores Visitantes estrictamente DE ESTE PARTIDO
                 (SELECT GROUP_CONCAT(mp_visit.IDPlayer SEPARATOR ',')
-                FROM matchPlayer mp_visit
+                FROM matchplayer mp_visit
                 WHERE mp_visit.IDMatch = m.IDMatch
                 AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteIDs,
 
                 -- 📋 Lista global de todos los IDs del partido (Local + Visitante)
                 (SELECT GROUP_CONCAT(mp_all.IDPlayer SEPARATOR ',')
-                FROM matchPlayer mp_all
+                FROM matchplayer mp_all
                 WHERE mp_all.IDMatch = m.IDMatch) AS IDsJugadoresPartido
 
             FROM matches m
-            INNER JOIN matchPlayer mp ON m.IDMatch = mp.IDMatch
+            INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
             INNER JOIN leagues l ON m.IDLeague = l.IDLeague
             INNER JOIN sports s ON l.IDSport = s.IDSport
             WHERE m.IDLeague = ?

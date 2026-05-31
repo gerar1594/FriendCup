@@ -27,7 +27,7 @@ class LeaguesController{
         const leagues = await pool.query(
             `SELECT L.*, S.*
             FROM leagues L
-                JOIN leaguePlayer LP ON L.IDLeague = LP.IDLeague
+                JOIN leagueplayer LP ON L.IDLeague = LP.IDLeague
                 JOIN sports S ON  L.IDSport = S.IDSport
                 WHERE LP.IDPlayer = ?`,
             [idplayer]
@@ -48,7 +48,7 @@ class LeaguesController{
         const leagues = await pool.query(
             `SELECT L.*, S.*
             FROM leagues L
-                JOIN leaguePlayer LP ON L.IDLeague = LP.IDLeague
+                JOIN leagueplayer LP ON L.IDLeague = LP.IDLeague
                 JOIN sports S ON  L.IDSport = S.IDSport
                 WHERE LP.IDPlayer = ? OR L.IDAdmin = ?
                 GROUP BY L.IDLeague`,
@@ -73,7 +73,7 @@ class LeaguesController{
         const [league] = await pool.query(`SELECT L.*, S.*  FROM leagues L, sports S WHERE L.IDSport = S.IDSport AND L.IDLeague = ?`,[idleague]);
         const [classification] = await pool.query(
             `SELECT P.NamePlayer, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws
-            FROM leaguePlayer LP
+            FROM leagueplayer LP
                 JOIN players P ON LP.IDPlayer = P.IDPlayer
                 WHERE LP.IDLeague = ?
             ORDER BY LP.Points DESC, LP.Matches ASC`,
@@ -111,7 +111,7 @@ class LeaguesController{
                 console.log("Llega", newLeagueId);
                 // Inscribir al jugador creador en tu tabla intermedia 'leaguePlayer'
                 await connection.query(
-                    "INSERT INTO leaguePlayer (IDLeague, IDPlayer) VALUES (?, ?)",
+                    "INSERT INTO leagueplayer (IDLeague, IDPlayer) VALUES (?, ?)",
                     [newLeagueId, IDPlayer]
                 );
 
@@ -155,7 +155,7 @@ class LeaguesController{
 
             // Comprobar si ya está en 'leaguePlayer'
             const [inscrito]: any = await pool.query(
-                "SELECT * FROM leaguePlayer WHERE IDLeague = ? AND IDPlayer = ?",
+                "SELECT * FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?",
                 [liga.IDLeague, IDPlayer]
             );
 
@@ -165,7 +165,7 @@ class LeaguesController{
 
             // Insertar la nueva inscripción individual
             await pool.query(
-                "INSERT INTO leaguePlayer (IDLeague, IDPlayer) VALUES (?, ?)",
+                "INSERT INTO leagueplayer (IDLeague, IDPlayer) VALUES (?, ?)",
                 [liga.IDLeague, IDPlayer]
             );
 
@@ -189,7 +189,7 @@ class LeaguesController{
                     `SELECT IDPlayer FROM players 
                     WHERE NamePlayer LIKE 'Bot Comodín %' 
                     AND IDPlayer NOT IN (
-                        SELECT IDPlayer FROM leaguePlayer WHERE IDLeague = ?
+                        SELECT IDPlayer FROM leagueplayer WHERE IDLeague = ?
                     ) 
                     ORDER BY CAST(SUBSTRING(NamePlayer, 13) AS UNSIGNED) ASC 
                     LIMIT 1`,
@@ -212,7 +212,7 @@ class LeaguesController{
                 // independiente los puntos, estadísticas y todos los partidos (jugados y pendientes).
 
                 await connection.query(
-                    "UPDATE leaguePlayer SET IDPlayer = ? WHERE IDLeague = ? AND IDPlayer = ?",
+                    "UPDATE leagueplayer SET IDPlayer = ? WHERE IDLeague = ? AND IDPlayer = ?",
                     [idBotLibre, idLeague, idPlayer]
                 );
 
