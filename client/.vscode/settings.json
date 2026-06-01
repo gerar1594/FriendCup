@@ -1,0 +1,15 @@
+{
+    "tailwindCSS.includeLanguages": {
+        "html": "html",
+        "typescript": "typescript",
+        "scss": "scss"
+    },
+    "editor.quickSuggestions": {
+        "strings": "on",
+        "other": "on",
+        "comments": "off"
+    },
+    "tailwindCSS.experimental.classRegex": [
+        ["ngClass\"?:\\s*['\"]([^'\"]*)['\"]", "([^'\"]*)"]
+    ]
+}

@@ -3,6 +3,7 @@ import { AuthService } from '../../../services/auth/auth.service';
 import { ModifyMatchDialog } from "../modify-match-dialog/modify-match-dialog";
 import { MatchesService } from '../../../services/matches/matches-service.service';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '../../../services/notification/notification.service';
 
 @Component({
     selector: 'app-match-card',
@@ -13,6 +14,8 @@ import { CommonModule } from '@angular/common';
 export class MatchCard {
 
     private matchesService = inject(MatchesService);
+    private notificationService = inject(NotificationService);
+    
     
     match = input.required<any>();
     showDatails = input<boolean>(false);
@@ -115,10 +118,11 @@ export class MatchCard {
                 console.log('Payload admin:', payload.periodos);
                 this.matchesService.validateMatchAdmin(idMatch, payload).subscribe({
                     next: (res) => {
-                        alert(res.message); // El backend dirá el resultado calculado (Ej: "Resultado: 2-1")
+                        this.notificationService.show(res.message, 'success');
                         this.loadMatches.emit();
                     },
-                    error: (err) => alert('Error: ' + err.error.message)
+                    error: (err) =>  this.notificationService.show(err.message, 'error')
+
                 });
             }
         }else{
@@ -127,10 +131,10 @@ export class MatchCard {
 
                 this.matchesService.validateMatch(idMatch, payload).subscribe({
                     next: (res) => {
-                        alert(res.message); // El backend dirá el resultado calculado (Ej: "Resultado: 2-1")
+                        this.notificationService.show(res.message, 'success');
                         this.loadMatches.emit();
                     },
-                    error: (err) => alert('Error: ' + err.error.message)
+                    error: (err) => this.notificationService.show(err.message, 'error')
                 });
             }
         }

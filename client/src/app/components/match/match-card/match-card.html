@@ -1,5 +1,4 @@
-<div class="bg-white border border-neutral-200 rounded-2xl p-5 flex flex-col gap-4 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)]"
-     [ngClass]="{'border-neutral-300 bg-neutral-50/70': match().Estado === 'Jugado'}">
+<div class="bg-white border border-neutral-200 rounded-2xl p-5 flex flex-col gap-4 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)]" [ngClass]="{'border-neutral-300 bg-neutral-50/70': match().Estado === 'Jugado'}">
     
     @if (showDatails()) {
         <div class="flex justify-between items-center border-b border-dashed border-neutral-200 pb-2 gap-2">

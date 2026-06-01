@@ -73,7 +73,7 @@ export class AuthComponent implements OnInit {
                     }
                 },
                 error: (err) => {
-                    alert('Credenciales incorrectas: ' + err.error.message)
+                    this.notificationService.show('Credenciales incorrectas: ' + err.error.message, 'error');
                 }
             });
         } else {
@@ -84,7 +84,8 @@ export class AuthComponent implements OnInit {
             }
             this.authService.register(data).subscribe({
                 next: () => {
-                    alert('¡Cuenta creada con éxito! Ya puedes iniciar sesión.');
+                    this.notificationService.show('¡Cuenta creada con éxito! Ya puedes iniciar sesión.', 'success');
+
                     this.toggleMode();
                 },
                 error: (err) => this.errorMessage.set(err.error.message || 'Error en el registro.')

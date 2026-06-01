@@ -5,6 +5,7 @@ import { MatchesService } from '../../../services/matches/matches-service.servic
 import { SportsService } from '../../../services/sports/sports-service.service';
 import { Parser } from 'expr-eval';
 import { AuthService } from '../../../services/auth/auth.service';
+import { NotificationService } from '../../../services/notification/notification.service';
 
 @Component({
     selector: 'app-modify-match-dialog',
@@ -14,6 +15,8 @@ import { AuthService } from '../../../services/auth/auth.service';
 export class ModifyMatchDialog implements OnInit {
 
     private matchesService = inject(MatchesService);
+    private notificationService = inject(NotificationService);
+    
 
     // Recibimos el partido desde el componente padre
     match = input.required<any>();
@@ -91,20 +94,20 @@ export class ModifyMatchDialog implements OnInit {
             if(this.adminMode()) {
                 this.matchesService.validateMatchAdmin(idMatch, payload).subscribe({
                     next: (res) => {
-                        alert(res.message); // El backend dirá el resultado calculado (Ej: "Resultado: 2-1")
+                        this.notificationService.show(res.message, 'success');
                         this.onSaved.emit();
                         this.onClose.emit();
                     },
-                    error: (err) => alert('Error: ' + err.error.message)
+                    error: (err) => this.notificationService.show(err.message, 'error')
                 });
             }else{
                 this.matchesService.updateResult(idMatch, payload).subscribe({
                     next: (res) => {
-                        alert(res.message); // El backend dirá el resultado calculado (Ej: "Resultado: 2-1")
+                        this.notificationService.show(res.message, 'success');
                         this.onSaved.emit();
                         this.close();
                     },
-                    error: (err) => alert('Error: ' + err.error.message)
+                    error: (err) => this.notificationService.show(err.message, 'error')
                 });
             }
         }

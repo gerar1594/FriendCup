@@ -48,11 +48,11 @@ export class MyMatches {
 
         /*this.matchesService.updateResult(matchId, payload).subscribe({
             next: (res: any) => {
-                alert(res.message); // Muestra el mensaje con el resultado calculado por el backend
+                this.notificationService.show(res.message, 'success');
                 this.closeModal();
                 this.loadUserMatches(); // Recarga la cuadrícula con el nuevo marcador global
             },
-            error: (err) => alert("Error al guardar: " + err.error.message)
+            error: (err) => this.notificationService.show(err.message, 'error')
         });*/
     }
 }

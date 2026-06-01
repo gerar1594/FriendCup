@@ -88,7 +88,7 @@
             <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Mis Ligas</div>
             @for (league of leaguesService.userLeagues(); track league.IDLeague) {
                 <a [routerLink]="['/league', league.IDLeague]" (click)="toggleMobileMenu()" class="block pl-6 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-emerald-400 transition-colors">
-                • {{ league.NameLeague }}
+                {{ league.NameLeague }}
                 </a>
             } @empty {
                 <span class="block pl-6 py-1 text-sm text-slate-500 italic">No estás en ninguna liga</span>

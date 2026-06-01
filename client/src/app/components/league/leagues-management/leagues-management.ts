@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { LeaguesService } from '../../../services/leagues/leagues-service.service';
 import { AuthService } from '../../../services/auth/auth.service';
 import { SportsService } from '../../../services/sports/sports-service.service';
+import { NotificationService } from '../../../services/notification/notification.service';
 
 
 @Component({
@@ -18,6 +19,8 @@ export class LeaguesManagementComponent implements OnInit {
     private leaguesService = inject(LeaguesService);
     private authService = inject(AuthService);
     private sportService = inject(SportsService);
+    private notificationService = inject(NotificationService);
+    
     private router = inject(Router);
 
     idPlayer = signal<number | null>(null);
@@ -65,12 +68,15 @@ export class LeaguesManagementComponent implements OnInit {
 
         this.leaguesService.createLeague(payload).subscribe({
             next: (res) => {
-                alert(`🏆 ¡Liga creada con éxito!\nComparte este código con tus amigos: ${res.code}`);
+                this.notificationService.show(`🏆 ¡Liga creada con éxito!\nComparte este código con tus amigos: ${res.code}`, 'success');
+
                 this.leaguesService.triggerRefresh();
 
                 this.router.navigate(['/league', res.idLeague]);
             },
-            error: (err) => alert(err.error.message)
+            error: (err) =>{
+                this.notificationService.show(err.message, 'error');
+            }
         });
     }
 
@@ -84,12 +90,16 @@ export class LeaguesManagementComponent implements OnInit {
 
         this.leaguesService.joinLeague(payload).subscribe({
             next: (res) => {
-                alert(res.message);
+                this.notificationService.show(res.message, 'success');
+
                 this.leaguesService.triggerRefresh();
 
                 this.router.navigate(['/league', res.idLeague]);
             },
-            error: (err) => alert(err.error.message)
+            error: (err) => {
+                this.notificationService.show(err.message, 'error');
+
+            }
         });
 
     }

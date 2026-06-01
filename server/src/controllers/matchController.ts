@@ -476,11 +476,11 @@ class MatchController {
                 // 3. 🧮 EJECUTAR LAS FÓRMULAS TEXTUALES
                 // Inicializamos el parseador seguro de expr-eval
                 const parser = new Parser();
-                
+
                 // Compilamos las fórmulas que extrajimos de phpMyAdmin
                 const exprLocal = parser.parse(fLocalText);
                 const exprVisitante = parser.parse(fVisitanteText);
-                
+
                 // Evaluamos las fórmulas pasándole el objeto con los números reales
                 const totalLocal = exprLocal.evaluate(variablesEntrada);
                 const totalVisitante = exprVisitante.evaluate(variablesEntrada);
@@ -504,6 +504,7 @@ class MatchController {
                     nuevoEstado = "Confirmado Local";
                 }
 
+                console.log(JSON.stringify(marcadorJSON), nuevoEstado, winner);
                 await connection.query(
                     "UPDATE matches SET Resultado = '" + JSON.stringify(marcadorJSON) +"', Estado = '" + nuevoEstado + "', Winner = " + winner + " WHERE IDMatch = ?",
                     [idMatch]
