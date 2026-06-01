@@ -48,7 +48,6 @@ export class AuthComponent implements OnInit {
         if (this.authForm.invalid) return;
 
         const data = this.authForm.value;
-
         if (this.isLoginMode()) {
             this.authService.login(this.authForm.value).subscribe({
                 next: (res: any) => {
@@ -73,7 +72,9 @@ export class AuthComponent implements OnInit {
                         this.router.navigate(['/']);
                     }
                 },
-                error: (err) => alert('Credenciales incorrectas: ' + err.error.message)
+                error: (err) => {
+                    alert('Credenciales incorrectas: ' + err.error.message)
+                }
             });
         } else {
             // PROCESAR REGISTRO

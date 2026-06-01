@@ -1,22 +1,31 @@
-<div class="management-container">
-  
-    <div class="action-card">
-        <h2>➕ Crear Nueva Liga</h2>
-        <p>Monta un torneo dinámico en pocos segundos.</p>
+<div class="flex flex-wrap gap-8 justify-center px-4 py-12 bg-neutral-50 min-h-[80vh]">
+
+    <div class="w-full max-w-[450px] p-10 bg-white rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] box-border">
+        <h2 class="text-neutral-800 text-2xl font-bold mt-0 mb-2">➕ Crear Nueva Liga</h2>
+        <p class="text-neutral-500 text-sm mb-8 leading-relaxed">Monta un torneo dinámico en pocos segundos.</p>
         
         <form (ngSubmit)="onCreateLeague()">
-            <div class="form-group">
-                <label>Nombre de la Liga</label>
-                <input type="text" [(ngModel)]="createData.NameLeague" name="nameLeague" placeholder="Ej: Torneo Clausura Padel" required>
+            <div class="mb-6">
+                <label class="block font-semibold text-xs mb-2 text-neutral-700">Nombre de la Liga</label>
+                <input 
+                    type="text" 
+                    [(ngModel)]="createData.NameLeague" 
+                    name="nameLeague" 
+                    placeholder="Ej: Torneo Clausura Padel" 
+                    required
+                    class="w-full p-3 border border-neutral-300 rounded-md text-base box-border outline-none focus:border-blue-500 transition-colors"
+                >
             </div>
 
-            <div class="form-group">
-                <label for="sportSelect">Selecciona el Deporte:</label>
+            <div class="mb-6">
+                <label for="sportSelect" class="block font-semibold text-xs mb-2 text-neutral-700">Selecciona el Deporte:</label>
                 <select 
                     id="sportSelect" 
                     [(ngModel)]="createData.IDSport" 
                     name="IDSport" 
-                    required>
+                    required
+                    class="w-full p-3 border border-neutral-300 rounded-md text-base box-border outline-none focus:border-blue-500 transition-colors bg-white"
+                >
                     <option value="" disabled selected>-- Elige un deporte --</option>
                     @for (sport of sports(); track sport.IDSport) {
                         <option [value]="sport.IDSport">
@@ -28,23 +37,39 @@
                 </select>
             </div>
 
-            <button type="submit" [disabled]="!createData.NameLeague || !createData.IDSport " class="btn-create">
+            <button 
+                type="submit" 
+                [disabled]="!createData.NameLeague || !createData.IDSport" 
+                class="w-full p-3.5 border-none rounded-md text-base font-bold text-white cursor-pointer transition-colors bg-blue-500 hover:enabled:bg-blue-600 disabled:bg-neutral-300 disabled:cursor-not-allowed"
+            >
                 Crear Liga
             </button>
         </form>
     </div>
 
-    <div class="action-card join-card">
-        <h2>🏆 Entrar a una Liga con Código</h2>
-        <p>Introduce el código de invitación de 6 dígitos que te pasaron.</p>
+    <div class="w-full max-w-[450px] p-10 bg-white rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] box-border border-t-4 border-emerald-500">
+        <h2 class="text-neutral-800 text-2xl font-bold mt-0 mb-2">🏆 Entrar a una Liga con Código</h2>
+        <p class="text-neutral-500 text-sm mb-8 leading-relaxed">Introduce el código de invitación de 6 dígitos que te pasaron.</p>
         
         <form (ngSubmit)="onJoinLeague()">
-            <div class="form-group">
-                <label>Código de Invitación</label>
-                <input type="text" [(ngModel)]="invitationCodeInput" name="invitationCode" placeholder="Ej: TR89XM" maxlength="10" class="code-input" required>
+            <div class="mb-6">
+                <label class="block font-semibold text-xs mb-2 text-neutral-700">Código de Invitación</label>
+                <input 
+                    type="text" 
+                    [(ngModel)]="invitationCodeInput" 
+                    name="invitationCode" 
+                    placeholder="Ej: TR89XM" 
+                    maxlength="10" 
+                    required
+                    class="w-full p-3 border border-neutral-300 rounded-md box-border outline-none focus:border-blue-500 transition-colors uppercase text-center text-xl tracking-[4px] font-bold"
+                >
             </div>
 
-            <button type="submit" [disabled]="invitationCodeInput.length < 5" class="btn-join">
+            <button 
+                type="submit" 
+                [disabled]="invitationCodeInput.length < 5" 
+                class="w-full p-3.5 border-none rounded-md text-base font-bold text-white cursor-pointer transition-colors bg-emerald-500 hover:enabled:bg-emerald-600 disabled:bg-neutral-300 disabled:cursor-not-allowed"
+            >
                 Unirse al Torneo
             </button>
         </form>

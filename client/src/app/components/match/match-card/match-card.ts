@@ -2,10 +2,11 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { AuthService } from '../../../services/auth/auth.service';
 import { ModifyMatchDialog } from "../modify-match-dialog/modify-match-dialog";
 import { MatchesService } from '../../../services/matches/matches-service.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-match-card',
-    imports: [ModifyMatchDialog],
+    imports: [ModifyMatchDialog, CommonModule],
     templateUrl: './match-card.html',
     styleUrl: './match-card.scss',
 })

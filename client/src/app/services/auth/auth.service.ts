@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,7 @@ import { Observable, tap } from 'rxjs';
 export class AuthService {
     private http = inject(HttpClient);
     private router = inject(Router);
-    private API_URL = 'http://localhost:3000/api/auth';
+    private API_URL = `${environment.apiUri}/auth`;
 
     // Signal global con los datos del usuario (se lee de localStorage al iniciar)
     public currentUser = signal<any>(JSON.parse(localStorage.getItem('user') || 'null'));
@@ -36,14 +37,16 @@ export class AuthService {
     }
 
     login(credentials: any): Observable<any> {
-        return this.http.post<any>(`${this.API_URL}/login`, credentials).pipe(
-        tap(res => {
-            // Almacenar sesión en el navegador
-            localStorage.setItem('token', res.token);
-            localStorage.setItem('user', JSON.stringify(res.user));
-            // Actualizar la Signal (el Navbar se enterará automáticamente)
-            this.currentUser.set(res.user);
-        })
+        const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+        console.log(`${this.API_URL}/login`, credentials);
+        return this.http.post<any>(`${this.API_URL}/login`, credentials, {headers}).pipe(
+            tap(res => {
+                // Almacenar sesión en el navegador
+                localStorage.setItem('token', res.token);
+                localStorage.setItem('user', JSON.stringify(res.user));
+                // Actualizar la Signal (el Navbar se enterará automáticamente)
+                this.currentUser.set(res.user);
+            })
         );
     }
 

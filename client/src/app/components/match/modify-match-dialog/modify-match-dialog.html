@@ -1,64 +1,87 @@
-<div class="dialog-overlay" (click)="close()">
-    <div class="dialog-content" (click)="$event.stopPropagation()">
+<div class="fixed inset-0 bg-neutral-900/70 backdrop-blur-md flex items-center justify-center z-[1000] p-5" (click)="close()">
+    <div class="bg-white w-full max-w-[450px] rounded-[20px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300" (click)="$event.stopPropagation()">
         
-        <div class="dialog-header">
-        <div class="sport-badge">{{ match().NameSport }}</div>
-        <h2>Actualizar Marcador</h2>
-        <p>Jornada {{ match().DayTrip }} — {{ match().NameLeague }}</p>
-        </div>
-
-        <div class="teams-header">
-        <div class="team-name">{{ match().JugadoresLocal }}</div>
-        <div class="vs-circle">VS</div>
-        <div class="team-name">{{ match().JugadoresVisitante }}</div>
-        </div>
-
-        <form (ngSubmit)="save()" class="score-form">
-        <div class="periods-container">
-            <div class="labels-row">
-            <span></span> <span class="col-label">Local</span>
-            <span></span>
-            <span class="col-label">Visitante</span>
+        <div class="p-6 text-center bg-neutral-50 border-b border-neutral-200">
+            <div class="inline-block bg-blue-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+                {{ match().NameSport }}
             </div>
+            <h2 class="m-0 text-neutral-800 text-xl font-bold">Actualizar Marcador</h2>
+            <p class="mt-1 mb-0 text-neutral-500 text-sm">Jornada {{ match().DayTrip }} — {{ match().NameLeague }}</p>
+        </div>
 
-            @for (periodo of formPeriodos(); track $index) {
-            <div class="period-row">
-                <div class="period-tag">{{ periodo.label }}</div>
+        <div class="flex items-center justify-center p-6 gap-4 bg-white">
+            <div class="flex-1 font-bold text-neutral-700 text-base text-right truncate">
+                {{ match().JugadoresLocal }}
+            </div>
+            <div class="bg-neutral-100 text-neutral-400 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-extrabold border-2 border-neutral-200 shrink-0">
+                VS
+            </div>
+            <div class="flex-1 font-bold text-neutral-700 text-base text-left truncate">
+                {{ match().JugadoresVisitante }}
+            </div>
+        </div>
+
+        <form (ngSubmit)="save()" class="flex flex-col gap-3">
+            <div class="px-8 flex flex-col gap-3">
                 
-                <input type="number" 
-                    [(ngModel)]="periodo.local" 
-                    (ngModelChange)="notificarCambio()"
-                    name="local-{{$index}}" 
-                    min="0" 
-                    required>
-
-                <span class="dash"></span>
-
-                <input type="number" 
-                    [(ngModel)]="periodo.visitante"
-                    (ngModelChange)="notificarCambio()"
-                    name="visitante-{{$index}}" 
-                    min="0" 
-                    required>
-            </div>
-            }
-            <div class="period-row">
-                <div class="period-tag">Total</div>
-                <div class="score-box-local">
-                    <span class="score-num">{{ totalLocalCalculado() }}</span>
+                <div class="grid grid-cols-[40px_1fr_20px_1fr] gap-2.5 text-center items-center">
+                    <div></div>
+                    <span class="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Local</span>
+                    <div></div>
+                    <span class="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Visitante</span>
                 </div>
-                <span class="dash"></span>
 
-                <div class="score-box-visitante">
-                    <span class="score-num">{{ totalVisitanteCalculado() }}</span>
+                @for (periodo of formPeriodos(); track $index) {
+                    <div class="grid grid-cols-[40px_1fr_20px_1fr] items-center gap-2.5">
+                        <div class="font-extrabold text-neutral-300 text-sm uppercase">
+                            {{ periodo.label }}
+                        </div>
+                        
+                        <input type="number" 
+                            [(ngModel)]="periodo.local" 
+                            (ngModelChange)="notificarCambio()"
+                            name="local-{{$index}}" 
+                            min="0" 
+                            required
+                            class="w-full p-2.5 border-2 border-neutral-100 rounded-xl text-center text-xl font-bold text-neutral-800 transition-all outline-none focus:border-blue-500 focus:bg-blue-50/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+
+                        <span class="text-neutral-300 font-bold text-center block">—</span>
+
+                        <input type="number" 
+                            [(ngModel)]="periodo.visitante"
+                            (ngModelChange)="notificarCambio()"
+                            name="visitante-{{$index}}" 
+                            min="0" 
+                            required
+                            class="w-full p-2.5 border-2 border-neutral-100 rounded-xl text-center text-xl font-bold text-neutral-800 transition-all outline-none focus:border-blue-500 focus:bg-blue-50/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                    </div>
+                }
+                
+                <div class="grid grid-cols-[40px_1fr_20px_1fr] items-center gap-2.5">
+                    <div class="font-extrabold text-neutral-400 text-sm uppercase">Total</div>
+                    
+                    <div class="w-full p-2.5 border-2 border-neutral-100 bg-neutral-100 rounded-xl text-center text-xl font-bold text-neutral-800">
+                        <span>{{ totalLocalCalculado() }}</span>
+                    </div>
+                    
+                    <span class="text-neutral-300 font-bold text-center block">—</span>
+
+                    <div class="w-full p-2.5 border-2 border-neutral-100 bg-neutral-100 rounded-xl text-center text-xl font-bold text-neutral-800">
+                        <span>{{ totalVisitanteCalculado() }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="dialog-actions">
-            <button type="button" class="btn-cancel" (click)="close()">Cancelar</button>
-            <button type="submit" class="btn-save">Finalizar Partido</button>
-        </div>
+            <div class="p-8 flex gap-4">
+                <button type="button" (click)="close()" 
+                    class="flex-1 p-3.5 bg-neutral-100 text-neutral-500 rounded-xl font-bold transition-transform cursor-pointer active:scale-[0.98]">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                    class="flex-1 p-3.5 bg-neutral-800 hover:bg-neutral-900 text-white rounded-xl font-bold transition-all cursor-pointer active:scale-[0.98]">
+                    Finalizar Partido
+                </button>
+            </div>
         </form>
 
     </div>

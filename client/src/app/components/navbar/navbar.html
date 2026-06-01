@@ -1,38 +1,114 @@
-<!--<nav class="navbar">
-    <div class="navbar-logo">
-        <a routerLink="/">FriendCup 🏆</a>
+<nav class="bg-slate-800 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+        
+        <div class="flex-shrink-0">
+            <a routerLink="/" class="text-xl font-bold text-white hover:text-emerald-400 transition-colors">
+            FriendCup 🏆
+            </a>
+        </div>
+
+        <div class="flex md:hidden">
+            <button 
+            (click)="toggleMobileMenu()" 
+            type="button" 
+            class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none transition-colors"
+            >
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                @if (isMobileMenuOpen()) {
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                } @else {
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                }
+            </svg>
+            </button>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-6">
+            @if (authService.isLoggedIn()) {
+
+            <div class="relative group">
+                <button class="flex items-center gap-1 text-slate-200 hover:text-emerald-400 font-medium py-2 cursor-pointer transition-colors">
+                Mis Ligas <span class="text-xs">▼</span>
+                </button>
+
+                <div class="absolute left-0 mt-0 w-52 bg-slate-700 rounded-md shadow-xl border border-slate-600 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50">
+                    <div class="py-1">
+                        @for (league of leaguesService.userLeagues(); track league.IDLeague) {
+                            <a [routerLink]="['/league', league.IDLeague]" class="block px-4 py-2.5 text-sm hover:bg-slate-600 hover:text-emerald-400 transition-colors">
+                                {{ league.NameLeague }}
+                            </a>
+                        } @empty {
+                            <span class="block px-4 py-2.5 text-sm text-slate-400 italic">No estás en ninguna liga</span>
+                        }
+                        <div class="border-t border-slate-600 my-1"></div>
+                        <a routerLink="/leagues/manage" class="block px-4 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-slate-600 transition-colors">
+                            Administrar Ligas
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <a routerLink="/my-matches" class="text-slate-200 hover:text-emerald-400 font-medium transition-colors">
+                Mis Partidos
+            </a>
+
+            <div class="flex items-center space-x-4 border-l border-slate-600 pl-6">
+                <span class="text-emerald-400 font-semibold text-sm">⚽ {{ authService.currentUser().nombre }}</span>
+                <button (click)="authService.logout()" class="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white px-3 py-1.5 rounded-md text-sm font-medium border border-red-500/30 transition-all cursor-pointer">
+                Salir
+                </button>
+            </div>
+
+            } @else {
+            <a routerLink="/login" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors">
+                Iniciar Sesión / Registro
+            </a>
+            }
+        </div>
+
+        </div>
     </div>
 
-    
-</nav>-->
-<nav class="navbar">
-    <div class="navbar-logo"><a routerLink="/">FriendCup 🏆</a></div>
+    <div 
+        [class]="isMobileMenuOpen() ? 'block md:hidden border-t border-slate-700 bg-slate-800' : 'hidden md:hidden'"
+    >
+        <div class="px-2 pt-2 pb-4 space-y-2">
+        @if (authService.isLoggedIn()) {
+            
+            <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Jugador: <span class="text-emerald-400 normal-case text-sm">{{ authService.currentUser().nombre }}</span>
+            </div>
 
-    <ul class="navbar-links">
-        @if (this.authService.isLoggedIn()) {
-                <li class="dropdown">
-                    <a class="dropdown-trigger">Mis Ligas ▼</a>
-                    <ul class="dropdown-menu">
-                        @for (league of leaguesService.userLeagues(); track league.IDLeague) {
-                            <li>
-                                <a [routerLink]="['/league', league.IDLeague]">{{ league.NameLeague }}</a>
-                            </li>
-                        } @empty {
-                            <li><span class="no-data">No estás en ninguna liga</span></li>
-                        }
-                        <li><a routerLink="/leagues/manage" class="manage-link">Administrar Ligas</a></li>
-                    </ul>
-                </li>
+            <a routerLink="/my-matches" (click)="toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
+            Mis Partidos
+            </a>
 
-                <li class="dropdown">
-                    <a routerLink="/my-matches" class="dropdown-trigger">Mis Partidos</a>
-                </li>
-            <li><span> {{ authService.currentUser().nombre }}</span></li>
-            <li class="dropdown"> </li>
-            <li><button (click)="authService.logout()" class="btn-logout">Salir</button></li>
-        } 
-        @else {
-            <li><a routerLink="/login" class="btn-login">Iniciar Sesión / Registro</a></li>
+            <div class="space-y-1">
+            <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Mis Ligas</div>
+            @for (league of leaguesService.userLeagues(); track league.IDLeague) {
+                <a [routerLink]="['/league', league.IDLeague]" (click)="toggleMobileMenu()" class="block pl-6 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-emerald-400 transition-colors">
+                • {{ league.NameLeague }}
+                </a>
+            } @empty {
+                <span class="block pl-6 py-1 text-sm text-slate-500 italic">No estás en ninguna liga</span>
+            }
+            <a routerLink="/leagues/manage" (click)="toggleMobileMenu()" class="block pl-6 px-3 py-2 rounded-md text-sm font-semibold text-emerald-400 hover:bg-slate-700 transition-colors">
+                ⚙️ Administrar Ligas
+            </a>
+            </div>
+
+            <div class="border-t border-slate-700 my-2 pt-2">
+            <button (click)="authService.logout(); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-red-500 hover:text-white transition-colors cursor-pointer">
+                Cerrar Sesión
+            </button>
+            </div>
+
+        } @else {
+            <a routerLink="/login" (click)="toggleMobileMenu()" class="block text-center px-3 py-3 rounded-md text-base font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
+            Iniciar Sesión / Registro
+            </a>
         }
-    </ul>
+        </div>
+    </div>
 </nav>

@@ -16,6 +16,11 @@ export class Navbar implements OnInit {
     public leaguesService = inject(LeaguesService);
     public authService = inject(AuthService);
 
+    isMobileMenuOpen = signal<boolean>(false);
+
+    toggleMobileMenu() {
+        this.isMobileMenuOpen.update(state => !state);
+    }
 
     ngOnInit(): void {
     }

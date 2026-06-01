@@ -1,40 +1,79 @@
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <div class="auth-tabs">
-           <div class="auth-tabs">
-                <button [class.active]="isLoginMode()" (click)="toggleMode()">Entrar</button>
-                <button [class.active]="!isLoginMode()" (click)="toggleMode()">Registrarse</button>
-            </div>
+<div class="flex items-center justify-center min-h-[80vh] bg-slate-50 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md bg-white p-6 sm:p-10 rounded-xl shadow-md border border-slate-100">
+        
+        <div class="flex mb-8 border-b-2 border-slate-200">
+        <button 
+            type="button"
+            (click)="toggleMode()"
+            [class]="isLoginMode() 
+            ? 'flex-1 py-3 text-center font-bold text-emerald-600 border-b-3 border-emerald-500 -mb-[2px] transition-all duration-300' 
+            : 'flex-1 py-3 text-center font-bold text-slate-400 hover:text-slate-600 transition-all duration-300'"
+        >
+            Entrar
+        </button>
+        <button 
+            type="button"
+            (click)="toggleMode()"
+            [class]="!isLoginMode() 
+            ? 'flex-1 py-3 text-center font-bold text-emerald-600 border-b-3 border-emerald-500 -mb-[2px] transition-all duration-300' 
+            : 'flex-1 py-3 text-center font-bold text-slate-400 hover:text-slate-600 transition-all duration-300'"
+        >
+            Registrarse
+        </button>
         </div>
 
-        <h2>{{ isLoginMode() ? '¡Hola de nuevo! ⚽' : 'Únete a FriendCup 🏆' }}</h2>
+        <h2 class="text-center text-xl sm:text-2xl font-bold mb-6 text-slate-800">
+        {{ isLoginMode() ? '¡Hola de nuevo! ⚽' : 'Únete a FriendCup 🏆' }}
+        </h2>
 
         @if (errorMessage()) {
-            <div class="alert-error">{{ errorMessage() }}</div>
+        <div class="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4 border-l-4 border-red-500 font-medium animate-fadeIn">
+            {{ errorMessage() }}
+        </div>
         }
 
-        <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+        <form [formGroup]="authForm" (ngSubmit)="onSubmit()" class="space-y-5">
         
-            @if (!isLoginMode()) {
-                <div class="form-group">
-                    <label>Nombre de Jugador</label>
-                    <input type="text" formControlName="Nombre" placeholder="Ej: Gerardo_10">
-                </div>
-            }
-
-            <div class="form-group">
-                <label>Correo Electrónico</label>
-                <input type="email" formControlName="Email" placeholder="correo@ejemplo.com">
+        @if (!isLoginMode()) {
+            <div class="flex flex-col gap-1.5">
+            <label class="font-semibold text-xs sm:text-sm text-slate-700">Nombre de Jugador</label>
+            <input 
+                type="text" 
+                formControlName="Nombre" 
+                placeholder="Ej: Gerardo_10"
+                class="w-full p-3 border border-slate-300 rounded-md text-sm sm:text-base transition-colors focus:border-emerald-500 focus:outline-none"
+            >
             </div>
+        }
 
-            <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" formControlName="Password" placeholder="••••••••">
-            </div>
+        <div class="flex flex-col gap-1.5">
+            <label class="font-semibold text-xs sm:text-sm text-slate-700">Correo Electrónico</label>
+            <input 
+            type="email" 
+            formControlName="Email" 
+            placeholder="correo@ejemplo.com"
+            class="w-full p-3 border border-slate-300 rounded-md text-sm sm:text-base transition-colors focus:border-emerald-500 focus:outline-none"
+            >
+        </div>
 
-            <button type="submit" [disabled]="authForm.invalid" class="btn-submit">
-                {{ isLoginMode() ? 'Iniciar Sesión' : 'Crear Cuenta Nueva' }}
-            </button>
+        <div class="flex flex-col gap-1.5">
+            <label class="font-semibold text-xs sm:text-sm text-slate-700">Contraseña</label>
+            <input 
+            type="password" 
+            formControlName="Password" 
+            placeholder="••••••••"
+            class="w-full p-3 border border-slate-300 rounded-md text-sm sm:text-base transition-colors focus:border-emerald-500 focus:outline-none"
+            >
+        </div>
+
+        <button 
+            type="submit" 
+            [disabled]="authForm.invalid" 
+            class="w-full mt-2 p-3 bg-emerald-500 text-white font-bold rounded-md text-sm sm:text-base shadow-sm hover:bg-emerald-600 transition-colors cursor-pointer disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none"
+        >
+            {{ isLoginMode() ? 'Iniciar Sesión' : 'Crear Cuenta Nueva' }}
+        </button>
         </form>
+
     </div>
 </div>

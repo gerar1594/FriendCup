@@ -1,11 +1,24 @@
 @if (notifService.currentToast(); as toast) {
-    <div class="toast-container" [ngClass]="toast.type">
-        <span class="toast-icon">
+    <div class="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-9999 
+                flex items-center gap-3 padding-y-3.5 px-5 rounded-lg text-white shadow-lg 
+                min-w-[280px] max-w-full sm:max-w-[400px] border-l-5 animate-in fade-in slide-in-from-bottom-5 duration-300"
+         [ngClass]="{
+            'bg-emerald-500 border-emerald-700': toast.type === 'success',
+            'bg-red-500 border-red-700': toast.type === 'error',
+            'bg-blue-500 border-blue-700': toast.type === 'info'
+         }">
+        
+        <span class="text-base flex-shrink-0">
             @if (toast.type === 'success') { ✅ }
             @else if (toast.type === 'error') { ❌ }
             @else { ℹ️ }
         </span>
-        <p class="toast-text">{{ toast.text }}</p>
-        <button (click)="notifService.clear()" class="toast-close">×</button>
+        
+        <p class="m-0 text-sm font-medium flex-grow">{{ toast.text }}</p>
+        
+        <button (click)="notifService.clear()" 
+                class="bg-transparent border-none text-white text-lg cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+            ×
+        </button>
     </div>
 }

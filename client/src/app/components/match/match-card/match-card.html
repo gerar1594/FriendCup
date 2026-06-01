@@ -1,66 +1,89 @@
-<div class="match-card" [class.finalizado]="match().Estado === 'Jugado'">
+<div class="bg-white border border-neutral-200 rounded-2xl p-5 flex flex-col gap-4 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)]"
+     [ngClass]="{'border-neutral-300 bg-neutral-50/70': match().Estado === 'Jugado'}">
+    
     @if (showDatails()) {
-        <div class="card-header">
-            <span class="sport-tag">{{ match().NameSport }}</span>
-            <span class="league-tag">{{ match().NameLeague }}</span>
-            <span class="jornada-tag">Jornada {{ match().DayTrip }}</span>
+        <div class="flex justify-between items-center border-b border-dashed border-neutral-200 pb-2 gap-2">
+            <span class="text-[11px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                {{ match().NameSport }}
+            </span>
+            <span class="text-xs font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md uppercase">
+                {{ match().NameLeague }}
+            </span>
+            <span class="text-xs font-semibold text-neutral-500 whitespace-nowrap">
+                Jornada {{ match().DayTrip }}
+            </span>
         </div>
     }
-    <div class="scoreboard-table">
-        <div class="table-row header-row">
-            <div class="cell team-cell">Equipo</div>
-            @if (match().Resultado && match().Resultado.periodos) {
-                @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="cell set-cell">{{ periodo.label }}</div>
-                }
-            } @else {
-                <div class="cell set-cell">S1</div>
-                <div class="cell set-cell">S2</div>
-                <div class="cell set-cell">S3</div>
-            }
-            <div class="cell final-cell">TOT</div>
-        </div>
 
-        <div class="table-row">
-            <div class="cell team-cell name">
-                <span class="dot local-dot"></span> {{ match().JugadoresLocal }}
+    <div class="flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden">
+        
+        <div class="flex items-center bg-neutral-50 border-b-2 border-neutral-200 px-3 py-2">
+            <div class="flex-[3] flex items-center justify-start text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                Equipo
             </div>
             @if (match().Resultado && match().Resultado.periodos) {
                 @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="cell set-cell score">{{ periodo.local }}</div>
+                    <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">
+                        {{ periodo.label }}
+                    </div>
                 }
             } @else {
-                <div class="cell set-cell score pending">—</div>
-                <div class="cell set-cell score pending">—</div>
-                <div class="cell set-cell score pending">—</div>
+                <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S1</div>
+                <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S2</div>
+                <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S3</div>
             }
-            <div class="cell final-cell total">
+            <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center text-xs font-bold text-neutral-600">
+                TOT
+            </div>
+        </div>
+
+        <div class="flex items-center border-b border-neutral-100 px-3 py-2 last:border-none">
+            <div class="flex-[3] flex items-center justify-start text-sm font-bold text-neutral-700 truncate whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full mr-1.5 inline-block bg-blue-500"></span>
+                {{ match().JugadoresLocal }}
+            </div>
+            @if (match().Resultado && match().Resultado.periodos) {
+                @for (periodo of match().Resultado.periodos; track $index) {
+                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">
+                        {{ periodo.local }}
+                    </div>
+                }
+            } @else {
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
+            }
+            <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center font-mono text-lg font-black text-neutral-900">
                 {{ match().Resultado.totalLocal }}
             </div>
         </div>
 
-        <div class="table-row">
-            <div class="cell team-cell name">
-                <span class="dot visitante-dot"></span> {{ match().JugadoresVisitante }}
+        <div class="flex items-center border-b border-neutral-100 px-3 py-2 last:border-none">
+            <div class="flex-[3] flex items-center justify-start text-sm font-bold text-neutral-700 truncate whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full mr-1.5 inline-block bg-amber-500"></span>
+                {{ match().JugadoresVisitante }}
             </div>
             @if (match().Resultado && match().Resultado.periodos) {
                 @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="cell set-cell score">{{ periodo.visitante }}</div>
+                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">
+                        {{ periodo.visitante }}
+                    </div>
                 }
             } @else {
-                <div class="cell set-cell score pending">—</div>
-                <div class="cell set-cell score pending">—</div>
-                <div class="cell set-cell score pending">—</div>
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
+                <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
             }
-            <div class="cell final-cell total">
+            <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center font-mono text-lg font-black text-neutral-900">
                 {{ match().Resultado.totalVisitante }}
             </div>
         </div>
 
     </div>
 
-    <div class="card-actions">
-        <span class="status-indicator" [class.done]="match().Estado === 'Jugado'">
+    <div class="flex justify-between items-center mt-auto pt-2">
+        <span class="text-xs font-bold"
+              [ngClass]="match().Estado === 'Jugado' ? 'text-emerald-600' : 'text-neutral-500'">
             @switch( match().Estado ) {
                 @case ("Jugado") {
                     🟢 Jugado
@@ -70,29 +93,25 @@
                 }
                 @default {
                     @if(confirmar()){
-                        <button (click)="validateMatch()" class="btn-edit">
+                        <button (click)="validateMatch()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
                             🔵 Confirmar
                         </button>
                     } @else {
-                        🔵 Confirmando
+                        <span class="text-blue-500 font-semibold">🔵 Confirmando</span>
                     }
                 }
             }
         </span>
+        
         @if (puedeEditar() && match().Estado !== 'Jugado') {
-            <button (click)="openEditModal()" class="btn-edit">
-                ✏️ 
-                @if(adminMode()) {
-                    Puntuar y validar
-                } @else {
-                    Puntuar
-                }
+            <button (click)="openEditModal()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
+                ✏️ {{ adminMode() ? 'Puntuar y validar' : 'Puntuar' }}
             </button>
-
         }
     </div>
 
 </div>
+
 @if (selectedMatch()) {
     <app-modify-match-dialog
         [match]="selectedMatch()"
