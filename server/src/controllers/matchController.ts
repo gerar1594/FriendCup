@@ -496,8 +496,10 @@ class MatchController {
                     winner = 1; // Gana Local
                 }else if (Math.round(totalVisitante) > Math.round(totalLocal)) {
                     winner = 2; // Gana Visitante
-                } else {
+                } else if (Math.round(totalVisitante) == Math.round(totalLocal)){
                     winner = 3; // Empate
+                }else{
+                    throw new Error("Error en los resultados finales");
                 }
                 let nuevoEstado = "Confirmado Visitante";
                 if (bandoEditor === 'Local') {
