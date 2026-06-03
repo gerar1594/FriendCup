@@ -20,6 +20,7 @@ export class MatchCard {
     match = input.required<any>();
     showDatails = input<boolean>(false);
     adminMode = input<boolean>(false);
+    namePlayerLeague = input<boolean>(false);
 
 
     protected formPeriodos = signal<any[]>([]);

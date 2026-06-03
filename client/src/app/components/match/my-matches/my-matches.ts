@@ -18,6 +18,7 @@ export class MyMatches {
 
     protected myMatches = signal<any[]>([]);
     protected selectedMatch = signal<any>(null);
+    protected useNamePlayerLeague = signal<boolean>(false);
 
     // Variables vinculadas al formulario del Modal
     protected formPeriodos = signal<any[]>([]);

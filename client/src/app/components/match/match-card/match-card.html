@@ -46,7 +46,12 @@
                 <div class="flex flex-col gap-1">
                     @for (item of this.match().JugadoresLocalNames; track $index) {
                         <div class="inline-flex gap-1 text-xs">
-                            {{ item }}
+                            @if (namePlayerLeague()) {
+                                {{ item.NamePlayerLeague || item.NamePlayer }}
+                            }
+                            @else{
+                                {{ item.NamePlayer }}
+                            }
                         </div>
                     }
                 </div>
@@ -77,7 +82,12 @@
                 <div class="flex flex-col gap-1">
                     @for (item of this.match().JugadoresVisitanteNames; track $index) {
                         <div class="inline-flex gap-1 text-xs">
-                            {{ item }}
+                            @if (namePlayerLeague()) {
+                                {{ item.NamePlayerLeague || item.NamePlayer }}
+                            }
+                            @else{
+                                {{ item.NamePlayer }}
+                            }
                         </div>
                     }
                 </div>

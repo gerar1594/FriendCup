@@ -334,6 +334,50 @@ class MatchController {
 
         try {
 
+            const querySqlWithNamePlayerLeague =`SELECT DISTINCT 
+                                            m.IDMatch, 
+                                            m.DayTrip, 
+                                            m.JugadoresLocal, 
+                                            m.JugadoresVisitante,
+                                            m.Estado, 
+                                            m.Resultado, 
+                                            l.NameLeague, 
+                                            s.*, 
+                                            mp.Bando AS bando,
+
+                                            -- 🏠 LOCALES: Devuelve un array de objetos JSON
+                                            (SELECT JSON_ARRAYAGG(
+                                                        JSON_OBJECT(
+                                                            'NamePlayer', pl_loc.NamePlayer,
+                                                            'NamePlayerLeague', lp_loc.NamePlayerLeague
+                                                        )
+                                                    )
+                                            FROM matchplayer mp_local
+                                            JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
+                                            LEFT JOIN leagueplayer lp_loc ON pl_loc.IDPlayer = lp_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
+                                            WHERE mp_local.IDMatch = m.IDMatch
+                                            AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
+
+                                            -- 🏃‍♂️ VISITANTES: Devuelve un array de objetos JSON
+                                            (SELECT JSON_ARRAYAGG(
+                                                        JSON_OBJECT(
+                                                            'NamePlayer', pl_vis.NamePlayer,
+                                                            'NamePlayerLeague', lp_vis.NamePlayerLeague
+                                                        )
+                                                    )
+                                            FROM matchplayer mp_visit
+                                            JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
+                                            LEFT JOIN leagueplayer lp_vis ON pl_vis.IDPlayer = lp_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
+                                            WHERE mp_visit.IDMatch = m.IDMatch
+                                            AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames
+
+                                        FROM matches m
+                                        INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
+                                        INNER JOIN leagues l ON m.IDLeague = l.IDLeague
+                                        INNER JOIN sports s ON l.IDSport = s.IDSport
+                                        WHERE mp.IDPlayer = ?
+                                        ORDER BY m.DayTrip ASC, m.Estado DESC;`
+
             const querySql =`SELECT DISTINCT m.IDMatch, m.DayTrip, m.JugadoresLocal, m.JugadoresVisitante,
                                 m.Estado, m.Resultado, l.NameLeague, s.*, mp.Bando as bando,
 
@@ -352,10 +396,11 @@ class MatchController {
                                 AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames
 
 
-                FROM matches m, matchplayer mp, leagues l, sports s
+                FROM matches m, matchplayer mp, leagues l, sports s, leagueplayer lp
                 WHERE m.IDMatch = mp.IDMatch
                 AND m.IDLeague = l.IDLeague
                 AND l.IDSport = s.IDSport
+                AND l.IDLeague = lp.IDLeague
                 AND mp.IDPlayer = ?
                 ORDER BY  m.DayTrip ASC, m.Estado DESC`;
 
@@ -363,7 +408,7 @@ class MatchController {
             console.log(pool.format(querySql, [idPlayer]));
             console.log("=====================================================");*/
 
-            const [userMatches]: any = await pool.query(querySql,[idPlayer]);
+            const [userMatches]: any = await pool.query(querySqlWithNamePlayerLeague,[idPlayer]);
             
             // IMPORTANTE: MySQL devuelve las columnas de tipo JSON ya parseadas como objetos JS de forma nativa.
 
@@ -397,22 +442,30 @@ class MatchController {
                 l.NameLeague, 
                 s.*,
 
-                -- 🏠 IDs de los jugadores Locales estrictamente DE ESTE PARTIDO
-                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'NamePlayer', pl_loc.NamePlayer,
+                    'NamePlayerLeague', lp_loc.NamePlayerLeague
+                ))
                 FROM matchplayer mp_local
-                JOIN players pl ON mp_local.IDPlayer = pl.IDPlayer
+                JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
+                -- Añadimos JOIN con leagueplayer para sacar el apodo de la liga
+                LEFT JOIN leagueplayer lp_loc ON lp_loc.IDPlayer = pl_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
                 WHERE mp_local.IDMatch = m.IDMatch
                 AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
 
-                -- 🏃‍♂️ IDs de los jugadores Visitantes estrictamente DE ESTE PARTIDO
-                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
+                -- 🏃‍♂️ Apodos/Nombres de los jugadores Visitantes de este partido
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'NamePlayer', pl_vis.NamePlayer,
+                    'NamePlayerLeague', lp_vis.NamePlayerLeague
+                ))
                 FROM matchplayer mp_visit
-                JOIN players pl ON mp_visit.IDPlayer = pl.IDPlayer
+                JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
+                -- Añadimos JOIN con leagueplayer para sacar el apodo de la liga
+                LEFT JOIN leagueplayer lp_vis ON lp_vis.IDPlayer = pl_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
                 WHERE mp_visit.IDMatch = m.IDMatch
                 AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
 
                 (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando
-
 
             FROM matches m
             INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
