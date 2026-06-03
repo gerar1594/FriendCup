@@ -19,6 +19,9 @@ class LeaguesRoutes{
         this.router.get('/all/:idplayer', leaguesController.getLeaguesByUserOrAdmin);
         this.router.get('/check-access/:idLeague/:idPlayer', leaguesController.checkLeagueAccess);
         this.router.post('/state/:idleague', leaguesController.updateState);
+        this.router.post('/config/:idleague', leaguesController.updateConfiguration);
+        this.router.post('/:idleague/reset', leaguesController.resetLeague);
+        this.router.post('/update-name-player-league', leaguesController.updateNamePlayerLeague);
 
     }
 

@@ -4,20 +4,43 @@ import { matchController } from '../controllers/matchController';
 import keys from '../keys';
 
 cron.schedule(keys.newMatchesCron, async () => {
-    console.log('⏰ [CRON] Iniciando verificación y generación de bloques de 3 jornadas...');
+    console.log('⏰ [CRON] Iniciando verificación y generación de bloques de jornadas...');
     
     try {
         // 1. Buscamos todas las ligas que estén 'En Curso'
         const [activeLeagues]: any = await pool.query(
-            "SELECT IDLeague FROM leagues WHERE Estado = 'En Curso'"
+            "SELECT IDLeague,Configuration FROM leagues WHERE Estado = 'En Curso' "
         );
 
         for (const league of activeLeagues) {
+
+            let config = league.Configuration;
+            console.log(`\n🔍 Procesando Liga ID: ${league.IDLeague} - Configuración actual:`, config);
+            if (typeof config === 'string') {
+                try {
+                    config = JSON.parse(config);
+                } catch (e) {
+                    continue; // JSON corrupto, saltamos a la siguiente liga
+                }
+            }
+
+            // 🎯 EL FILTRO DIRECTO: Si NO es semanal, saltamos a la siguiente iteración
+            if (config?.jornada?.tipo !== 'semanal') {
+                continue; 
+            }
+
             console.log(`\n==================================================`);
             console.log(`🏆 Procesando Liga ID: ${league.IDLeague}`);
             console.log(`==================================================`);
-
-            await generarBloqueDeJornadas(league.IDLeague, keys.nJornadasDefault);
+            const nJornadas = config.jornada.value || keys.nJornadasDefault;
+            try {
+                // 🚀 USAMOS AWAIT LIMPIO: Esperamos secuencialmente a que termine la liga actual
+                await generarBloqueDeJornadas(league.IDLeague, nJornadas, pool);
+                console.log(`✅ Bloque de ${nJornadas} jornadas procesado para liga ID: ${league.IDLeague}.`);
+            } catch (err: any) {
+                // Si falla una liga, se loguea el error pero el bucle FOR continúa con la siguiente liga activa
+                console.error(`❌ Error generando jornadas para liga ID: ${league.IDLeague}:`, err.message);
+            }
         }
         console.log('\n⏰ [CRON] Finalizado el proceso de generación por bloques.');
 
@@ -26,16 +49,15 @@ cron.schedule(keys.newMatchesCron, async () => {
     }
 });
 
-export async function generarBloqueDeJornadas(idLeague: number | string, nJornadas: number): Promise<void> {
+export async function generarBloqueDeJornadas(idLeague: number | string, nJornadas: number = keys.nJornadasDefault, client: any = pool): Promise<void> {
     console.log(`🎲 Iniciando generación de bloques de jornadas para la liga ID: ${idLeague}...`);
 
     // Ejecutamos un bucle de 3 iteraciones para generar 3 jornadas consecutivas
-            console.log("LLega");
 
     for (let i = 0; i < nJornadas; i++) {
-        
+
         // 1. Averiguamos cuál es la última jornada creada en tiempo real
-        const [lastDayTrip]: any = await pool.query(
+        const [lastDayTrip]: any = await client.query(
             "SELECT MAX(DayTrip) as maxDay FROM matches WHERE IDLeague = ?",
             [idLeague]
         );
@@ -44,22 +66,21 @@ export async function generarBloqueDeJornadas(idLeague: number | string, nJornad
         const nextDayTrip = lastDayTrip[0].maxDay ? lastDayTrip[0].maxDay + 1 : 1;
 
         // 2. VERIFICACIÓN DE SEGURIDAD: Comprobamos si ya existe esta jornada
-        const [existingMatches]: any = await pool.query(
+        const [existingMatches]: any = await client.query(
             "SELECT COUNT(*) as count FROM matches WHERE IDLeague = ? AND DayTrip = ?",
             [idLeague, nextDayTrip]
         );
         if (existingMatches[0].count === 0) {
 
-            console.log(` └─> [Iteración ${i + 1}/3] -> Generando Jornada ${nextDayTrip}...`);
-
+            console.log(` └─> [Iteración ${i + 1}/${nJornadas}] -> Generando Jornada ${nextDayTrip}...`);
             // Simulamos los objetos req y res de Express para el controlador transaccional
-            const mockReq: any = { 
-                body: { idLeague, dayTrip: nextDayTrip } 
+            const mockReq: any = {
+                body: { idLeague, dayTrip: nextDayTrip }
             };
 
             await new Promise<void>(async (resolve, reject) => {
                 const mockRes: any = {
-                    status: (code: number) => ({ 
+                    status: (code: number) => ({
                         json: (msg: any) => {
                             if (code >= 400) {
                                 reject(new Error(msg.message));
@@ -67,7 +88,7 @@ export async function generarBloqueDeJornadas(idLeague: number | string, nJornad
                                 console.log(`     ✅ Algoritmo completado (Jornada ${nextDayTrip}):`, msg.message);
                                 resolve();
                             }
-                        } 
+                        }
                     })
                 };
 

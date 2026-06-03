@@ -333,76 +333,111 @@ class MatchController {
         const { idPlayer } = req.params;
 
         try {
-            const [userMatches]: any = await pool.query(
-                `SELECT DISTINCT m.IDMatch, m.DayTrip, m.JugadoresLocal, m.JugadoresVisitante,
-                                m.Estado, m.Resultado, l.NameLeague, s.*,
-                                (SELECT GROUP_CONCAT(mp_all.IDPlayer)
-                                    FROM matchplayer mp_all
-                                    WHERE mp_all.IDMatch = m.IDMatch) AS IDsJugadoresPartido,
-                                (SELECT GROUP_CONCAT(mp_local.IDPlayer SEPARATOR ',')
-                                    FROM matchplayer mp_local
-                                    WHERE mp_local.IDMatch = m.IDMatch AND mp_local.Bando = 'Local') AS JugadoresLocalIDs,
 
-                                    -- 🏃‍♂️ IDs de los jugadores Visitantes separados por comas
-                                (SELECT GROUP_CONCAT(mp_visit.IDPlayer SEPARATOR ',')
-                                    FROM matchplayer mp_visit
-                                    WHERE mp_visit.IDMatch = m.IDMatch AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteIDs
+            const querySql =`SELECT DISTINCT m.IDMatch, m.DayTrip, m.JugadoresLocal, m.JugadoresVisitante,
+                                m.Estado, m.Resultado, l.NameLeague, s.*, mp.Bando as bando,
+
+                                -- 🏠 IDs de los jugadores Locales estrictamente DE ESTE PARTIDO
+                                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
+                                FROM matchplayer mp_local
+                                JOIN players pl ON mp_local.IDPlayer = pl.IDPlayer
+                                WHERE mp_local.IDMatch = m.IDMatch
+                                AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
+
+                                -- 🏃‍♂️ IDs de los jugadores Visitantes estrictamente DE ESTE PARTIDO
+                                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
+                                FROM matchplayer mp_visit
+                                JOIN players pl ON mp_visit.IDPlayer = pl.IDPlayer
+                                WHERE mp_visit.IDMatch = m.IDMatch
+                                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames
+
+
                 FROM matches m, matchplayer mp, leagues l, sports s
                 WHERE m.IDMatch = mp.IDMatch
                 AND m.IDLeague = l.IDLeague
                 AND l.IDSport = s.IDSport
                 AND mp.IDPlayer = ?
-                ORDER BY  m.DayTrip ASC, m.Estado DESC`,
-                [idPlayer]
-            );
+                ORDER BY  m.DayTrip ASC, m.Estado DESC`;
+
+            /*console.log("================== QUERY EJECUTADA ==================");
+            console.log(pool.format(querySql, [idPlayer]));
+            console.log("=====================================================");*/
+
+            const [userMatches]: any = await pool.query(querySql,[idPlayer]);
             
             // IMPORTANTE: MySQL devuelve las columnas de tipo JSON ya parseadas como objetos JS de forma nativa.
-            res.json(userMatches);
+
+            const formattedMatches = userMatches.map((match: any) => ({
+                ...match,
+                JugadoresLocalNames: typeof match.JugadoresLocalNames === 'string' ? JSON.parse(match.JugadoresLocalNames) : match.JugadoresLocalNames,
+                JugadoresVisitanteNames: typeof match.JugadoresVisitanteNames === 'string' ? JSON.parse(match.JugadoresVisitanteNames) : match.JugadoresVisitanteNames,
+                NamesJugadoresPartido: typeof match.NamesJugadoresPartido === 'string' ? JSON.parse(match.NamesJugadoresPartido) : match.NamesJugadoresPartido
+            }));
+            res.json({
+                userMatches: formattedMatches
+            });
         } catch (error: any) {
+            console.error("Error al obtener los partidos del usuario:", error.message);
             res.status(500).json({ message: "Error al obtener los partidos del usuario: " + error.message });
         }
     }
 
     public async getMatchesByLeague(req: Request, res: Response): Promise<any> {
         const { idleague } = req.params;
-        const [matches]: any = (await pool.query(
-            `SELECT DISTINCT 
+        const currentUserId = req.headers['x-user-id'];
+
+        console.log(`Obteniendo partidos para Liga ${idleague} y Usuario ${currentUserId}`);
+
+       // 1. Guardamos el string de la query en una constante
+        const querySql = `SELECT DISTINCT 
                 m.IDMatch, 
                 m.DayTrip, 
-                m.JugadoresLocal, 
-                m.JugadoresVisitante,
                 m.Estado, 
                 m.Resultado, 
                 l.NameLeague, 
                 s.*,
 
                 -- 🏠 IDs de los jugadores Locales estrictamente DE ESTE PARTIDO
-                (SELECT GROUP_CONCAT(mp_local.IDPlayer SEPARATOR ',')
+                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
                 FROM matchplayer mp_local
+                JOIN players pl ON mp_local.IDPlayer = pl.IDPlayer
                 WHERE mp_local.IDMatch = m.IDMatch
-                AND mp_local.Bando = 'Local') AS JugadoresLocalIDs,
+                AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
 
                 -- 🏃‍♂️ IDs de los jugadores Visitantes estrictamente DE ESTE PARTIDO
-                (SELECT GROUP_CONCAT(mp_visit.IDPlayer SEPARATOR ',')
+                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
                 FROM matchplayer mp_visit
+                JOIN players pl ON mp_visit.IDPlayer = pl.IDPlayer
                 WHERE mp_visit.IDMatch = m.IDMatch
-                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteIDs,
+                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
 
-                -- 📋 Lista global de todos los IDs del partido (Local + Visitante)
-                (SELECT GROUP_CONCAT(mp_all.IDPlayer SEPARATOR ',')
-                FROM matchplayer mp_all
-                WHERE mp_all.IDMatch = m.IDMatch) AS IDsJugadoresPartido
+                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando
+
 
             FROM matches m
             INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
             INNER JOIN leagues l ON m.IDLeague = l.IDLeague
             INNER JOIN sports s ON l.IDSport = s.IDSport
             WHERE m.IDLeague = ?
-            ORDER BY m.DayTrip ASC, m.Estado DESC;`,
-            [idleague]
-        ));
+            ORDER BY m.DayTrip ASC, m.Estado DESC;`;
+
+        // 2. Usamos pool.format para renderizar el string final con sus parámetros mapeados
+        /*console.log("================== QUERY EJECUTADA ==================");
+        console.log(pool.format(querySql, [currentUserId,idleague]));
+        console.log("=====================================================");*/
+
+        // 3. Pasamos la constante formateada directamente a la base de datos
+        const [matches]: any = await pool.query(querySql, [currentUserId, idleague]);
+        
+        const formattedMatches = matches.map((match: any) => ({
+            ...match,
+            JugadoresLocalNames: typeof match.JugadoresLocalNames === 'string' ? JSON.parse(match.JugadoresLocalNames) : match.JugadoresLocalNames,
+            JugadoresVisitanteNames: typeof match.JugadoresVisitanteNames === 'string' ? JSON.parse(match.JugadoresVisitanteNames) : match.JugadoresVisitanteNames,
+            NamesJugadoresPartido: typeof match.NamesJugadoresPartido === 'string' ? JSON.parse(match.NamesJugadoresPartido) : match.NamesJugadoresPartido
+        }));
+
         res.json({
-            matches
+            matches: formattedMatches
         });
 
     }

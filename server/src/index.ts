@@ -28,7 +28,7 @@ class Server{
         this.app.use(cors({
             origin: '*', // Permitir cualquier origen (ideal para asegurarte de que móvil/tablet entran)
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // 👈 Añade OPTIONS aquí
-            allowedHeaders: ['Content-Type', 'Authorization']
+            allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
         }));
         this.app.use(express.json());
         this.app.use(express.urlencoded({extended:false}));

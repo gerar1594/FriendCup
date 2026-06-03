@@ -97,4 +97,15 @@ export class LeaguesService {
     updateLeagueState(idLeague: any, nuevoEstado: string) {
         return this.http.post<any>(`${this.API_URL}/state/${idLeague}`, {estado: nuevoEstado, idadmin: this.authService.currentUser().idPlayer})
     }
+    updateLeagueConfiguration(idLeague: any, configuration: any) {
+        return this.http.post<any>(`${this.API_URL}/config/${idLeague}`, {configuration: configuration})
+    }
+
+    resetLeague(idLeague: number): Observable<any> {
+        return this.http.post(`${this.API_URL}/${idLeague}/reset`, {});
+    }
+
+    updateNamePlayerLeague(idLeague: number, newName: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/update-name-player-league`, { idLeague, newName });
+    }
 }

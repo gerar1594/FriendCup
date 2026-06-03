@@ -28,8 +28,8 @@ export class MyMatches {
 
     loadUserMatches() {
         const userId = this.authService.currentUser()?.idPlayer;
-        this.matchesService.getMatchesByUser(userId).subscribe(matches => {
-            this.myMatches.set(matches);
+        this.matchesService.getMatchesByUser(userId).subscribe(res => {
+            this.myMatches.set(res.userMatches); // Ajusta según la estructura real de tu respuesta
         });
     }
 

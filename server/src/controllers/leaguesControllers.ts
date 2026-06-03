@@ -24,7 +24,7 @@ class LeaguesController{
     public async getLeaguesByUser(req: Request, res: Response): Promise<void> {
         const { idplayer } = req.params;
 
-        const leagues = await pool.query(
+        const [leagues] = await pool.query(
             `SELECT L.*, S.*
             FROM leagues L
                 JOIN leagueplayer LP ON L.IDLeague = LP.IDLeague
@@ -33,9 +33,8 @@ class LeaguesController{
             [idplayer]
         );
 
-        if (leagues.length > 0) {
-
-            res.json(leagues[0]);
+        if (leagues) {
+            res.json(leagues);
         }
         else {
             res.status(404).json({ message: "No se encontraron ligas para este jugador" });
@@ -45,7 +44,7 @@ class LeaguesController{
     public async getLeaguesByUserOrAdmin(req: Request, res: Response): Promise<void> {
         const { idplayer } = req.params;
 
-        const leagues = await pool.query(
+        const [leagues] = await pool.query(
             `SELECT L.*, S.*
             FROM leagues L
                 JOIN leagueplayer LP ON L.IDLeague = LP.IDLeague
@@ -55,9 +54,8 @@ class LeaguesController{
             [idplayer, idplayer]
         );
 
-        if (leagues.length > 0) {
-
-            res.json(leagues[0]);
+        if (leagues) {
+            res.json(leagues);
         }
         else {
             res.status(404).json({ message: "No se encontraron ligas para este jugador" });
@@ -69,27 +67,37 @@ class LeaguesController{
 
         const { idleague } = req.params;
         //let idPlayer: string = req.headers["id"] as string;
+        const currentUserId = req.headers['x-user-id'];
 
-        const [league] = await pool.query(`SELECT L.*, S.*  FROM leagues L, sports S WHERE L.IDSport = S.IDSport AND L.IDLeague = ?`,[idleague]);
+
+        const [league] : any = await pool.query(`SELECT L.*, S.*  FROM leagues L, sports S WHERE L.IDSport = S.IDSport AND L.IDLeague = ?`,[idleague]);
         const [classification] = await pool.query(
-            `SELECT P.NamePlayer, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws
+            `SELECT P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws,
+                IF(LP.IDPlayer = ?, 1, 0) AS IsCurrentUser
             FROM leagueplayer LP
                 JOIN players P ON LP.IDPlayer = P.IDPlayer
                 WHERE LP.IDLeague = ?
             ORDER BY LP.Points DESC, LP.Matches ASC`,
-            [idleague]
+            [currentUserId, idleague]
         );
-
+        // 2. Controlamos si 'Configuration' viene como String y lo parseamos de forma segura
+        let leagueData = {...league[0]};
+        if (typeof leagueData.Configuration === 'string') {
+            try {
+                leagueData.Configuration = JSON.parse(leagueData.Configuration);
+            } catch (e) {
+                leagueData.Configuration = leagueData.Configuration; // Fallback en caso de JSON corrupto
+            }
+        }
 
         res.json({
-            league: league,
+            league: leagueData,
             classification: classification,
         });
     }
 
     public async create(req : Request, res : Response): Promise<void> {
         const { NameLeague, IDSport, IDPlayer } = req.body; 
-        console.log(IDSport);
         try {
             // Generamos el código de invitación alfanumérico único
             const invitationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -102,10 +110,17 @@ class LeaguesController{
                 // Insertar la liga usando tus columnas exactas
                 console.log(`INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado) 
                         VALUES ('${NameLeague}', '${invitationCode}', ${IDSport}, ${IDPlayer}, 'Abierta')`)
+
+                const configuracionDefault = {
+                    "jornada": {
+                        "tipo": "",
+                        "value": 0
+                    }
+                };
                 const [leagueResult]: any = await connection.query(
-                    `INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado) 
-                        VALUES (?, ?, ?, ?, 'Abierta')`,
-                    [NameLeague, invitationCode, IDSport, IDPlayer ]
+                    `INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado, Configuration) 
+                        VALUES (?, ?, ?, ?, 'Abierta',)`,
+                    [NameLeague, invitationCode, IDSport, IDPlayer, JSON.stringify(configuracionDefault) ]
                 );
                 const newLeagueId = leagueResult.insertId;
                 console.log("Llega", newLeagueId);
@@ -326,6 +341,184 @@ class LeaguesController{
             return res.status(500).json({ message: "Error al actualizar el estado: " + error.message });
         }
     }
+
+    public async updateConfiguration(req: Request, res: Response) {
+        const { idleague } = req.params;
+        const { configuration } = req.body; // Esperamos un objeto JSON con la nueva configuración
+        const currentUserId = req.headers['x-user-id'];
+        try{
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+            try {
+                // 1. Validamos que el usuario que hace la petición es el admin de la liga
+                const [liga]: any = await connection.query(
+                    "SELECT IDAdmin FROM leagues WHERE IDLeague = ?",
+                    [idleague]
+                );
+                if (liga.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "La liga no existe." });
+                }
+                if (liga[0].IDAdmin !== Number(currentUserId)) {
+                    await connection.rollback();
+                    return res.status(403).json({ message: "No tienes permisos para modificar esta liga." });
+                }
+
+                // 🔄 LÓGICA DE GENERACIÓN DE JORNADAS EXTRA EN MODO ESTÁTICO
+                if (configuration?.jornada?.tipo === 'estatico') {
+                    const targetJornadas = Number(configuration.jornada.value);
+
+                    // A. Consultamos cuál es la jornada máxima actual que tiene partidos registrados
+                    const [maxJornadaResult]: any = await connection.query(
+                        "SELECT COALESCE(MAX(DayTrip), 0) AS currentMax FROM matches WHERE IDLeague = ?",
+                        [idleague]
+                    );
+
+                    const currentMaxJornada = maxJornadaResult[0].currentMax;
+
+                    // B. Si el usuario pide un número mayor de jornadas que las actuales, generamos las que faltan
+                    if (targetJornadas > currentMaxJornada) {
+                        console.log(`Generando jornadas desde la ${currentMaxJornada + 1} hasta la ${targetJornadas}`);
+
+                        // Iteramos para crear las jornadas que faltan en el sistema
+                        await generarBloqueDeJornadas(idleague.toString(), targetJornadas - currentMaxJornada, connection) // Generamos las jornadas que faltan
+                                .then(() => console.log(`✅ Jornadas generadas con éxito para liga ${idleague}.`))
+                                .catch((err) => console.error(err.message));
+                    } else {
+                        console.log(`No se generan jornadas. Solicitadas: ${targetJornadas}, Ya existentes: ${currentMaxJornada}`);
+                    }
+                }
+
+
+                // 2. Actualizamos la configuración (la guardamos como string JSON en la base de datos)
+                await connection.query(
+                    "UPDATE leagues SET Configuration = ? WHERE IDLeague = ?",
+                    [JSON.stringify(configuration), idleague]
+                );
+                await connection.commit();
+                return res.status(200).json({ message: "Configuración actualizada con éxito." });
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        } catch (error: any) {
+            return res.status(500).json({ message: "Error al actualizar la configuración: " + error.message });
+        }
+    }
+
+    public async resetLeague(req: Request, res: Response): Promise<void> {
+        const { idleague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+        const connection = await pool.getConnection();
+        try {
+            
+            await connection.beginTransaction();
+
+            try {
+                // 1. Validamos que el usuario que hace la petición es el admin de la liga
+                const [liga]: any = await connection.query(
+                    "SELECT IDAdmin FROM leagues WHERE IDLeague = ?",
+                    [idleague]
+                );
+                if (liga.length === 0) {
+                    await connection.rollback();
+                    res.status(404).json({ message: "La liga no existe." });
+                }
+                if (liga[0].IDAdmin !== Number(currentUserId)) {
+                    await connection.rollback();
+                    res.status(403).json({ message: "No tienes permisos para modificar esta liga." });
+                    throw new Error("Permisos insuficientes para reiniciar la liga."); // Lanzamos un error para salir del flujo
+                }
+            } catch (err) {
+                throw err;
+            }
+
+            // 1. Opcional: Validar si el usuario actual es el ADMIN de la liga (Seguridad extra)
+            // const idUser = req.user.id; // Si usas middleware de autenticación
+
+            // 2. Borramos todos los partidos asociados a la liga
+            // Nota: Si tu tabla 'matches_sets' o similar tiene ON DELETE CASCADE, se borrarán solos.
+            // Si no, borra primero los sets/detalles y luego los partidos.
+            console.log(`🔄 Reiniciando liga ID: ${idleague} - Eliminando partidos existentes...`);
+            await connection.query(
+                "DELETE FROM matches WHERE IDLeague = ?",
+                [idleague]
+            );
+
+            // 3. Opcional: Si tienes una tabla intermedia de inscripciones donde guardas los puntos 
+            // acumulados de cada jugador de forma estática (ej: points, victories, defeats...), los reiniciamos a 0.
+            await connection.query(
+                `UPDATE leagueplayer
+                SET Points = 0, Matches = 0, Victories = 0, Defeats = 0, Draws = 0
+                WHERE IDLeague = ?`,
+                [idleague]
+            );
+
+            // 4. Cambiamos el estado de la liga de nuevo a 'Abierta' o lo mantenemos en base a tu flujo
+            await connection.query(
+                "UPDATE leagues SET Estado = 'Abierta' WHERE IDLeague = ?",
+                [idleague]
+            );
+
+            // Confirmamos todos los cambios en la base de datos
+            await connection.commit();
+
+            res.status(200).json({
+                message: 'La liga se ha reiniciado con éxito. Se han eliminado todos los partidos y las clasificaciones vuelven a estar a cero.'
+            });
+
+        } catch (error: any) {
+            // Si algo falla, cancelamos todo el borrado para no dejar datos huérfanos
+            await connection.rollback();
+            console.error('❌ Error al reiniciar la liga:', error);
+            res.status(500).json({
+                message: 'Error interno del servidor al intentar reiniciar la liga.'
+            });
+        } finally {
+            connection.release(); // Devolvemos la conexión al pool
+        }
+    };
+
+    public async updateNamePlayerLeague(req: Request, res: Response): Promise<void> {
+        const { idLeague, newName } = req.body;
+        const currentUserId = req.headers['x-user-id'];
+
+        // Validaciones básicas
+        if (!newName || newName.trim() === '') {
+            res.status(400).json({ message: 'El nombre no puede estar vacío.' });
+        }
+
+        if (newName.length > 20) {
+            res.status(400).json({ message: 'El nombre es demasiado largo (máximo 20 caracteres).' });
+        }
+
+        try {
+            // Ejecutamos la actualización en MariaDB
+            const [result]: any = await pool.query(
+                `UPDATE leagueplayer
+                SET NamePlayerLeague = ?
+                WHERE IDLeague = ? AND IDPlayer = ?`,
+                [newName.trim(), idLeague, currentUserId]
+            );
+
+            // Si rowsAffected (o affectedRows) es 0, significa que el jugador no está inscrito en esa liga
+            if (result.affectedRows === 0) {
+                res.status(404).json({
+                    message: 'No se encontró tu inscripción en esta liga para poder modificar el nombre.'
+                });
+            }
+
+            res.status(200).json({
+                message: 'Tu nombre en la liga ha sido actualizado correctamente. 📝'
+            });
+
+        } catch (error) {
+            console.error('❌ Error al actualizar el nombre del jugador en la liga:', error);
+            res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    };
 }
 
 

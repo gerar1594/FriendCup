@@ -38,13 +38,8 @@ export class MatchCard {
         if( this.adminMode() ) {
             return true; // Si estás en modo admin, puedes editar cualquier partido
         }
-        if (!partido || !partido.IDsJugadoresPartido) return false;
-
-        // Convertimos el String "2,5,14" en un Array de números reales: [2, 5, 14]
-        const idsArray = partido.IDsJugadoresPartido.split(',').map((id: string) => Number(id));
-
-        // Validamos si nuestra ID está incluida en ese listado
-        return idsArray.includes(this.userId);
+        if(partido.bando === null) return false;
+        return true;
     });
     protected confirmar = computed(() => {
         const match = this.match();
@@ -53,23 +48,15 @@ export class MatchCard {
         if (match.Estado === 'Jugado' || match.Estado === 'Pendiente') {
             return false;
         }
-
-        // 2. Averiguamos a qué bando pertenece el usuario actual en este partido
-        // Puedes comprobarlo buscando su ID en los arrays dinámicos que preparamos en el backend:
-        const localesIDs = match.JugadoresLocalIDs ? match.JugadoresLocalIDs.split(',').map(Number) : [];
-        const visitantesIDs = match.JugadoresVisitanteIDs ? match.JugadoresVisitanteIDs.split(',').map(Number) : [];
-
-        const esLocal = localesIDs.includes(currentUserId);
-        const esVisitante = visitantesIDs.includes(currentUserId);
         if(this.adminMode()) {
             return true; // Si eres admin, puedes confirmar cualquier partido
         }
 
-        if (match.Estado == 'Confirmado Visitante' && esLocal) {
+        if (match.Estado == 'Confirmado Visitante' && this.match().bando === 'Local') {
             return true;
         }
 
-        if (match.Estado == 'Confirmado Local' && esVisitante) {
+        if (match.Estado == 'Confirmado Local' && this.match().bando === 'Visitante') {
             return true;
         }
 
