@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express,{ Application} from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
-import jugadoresRoutes from './routes/playersRoutes';
+import playersRoutes from './routes/playersRoutes';
 import leaguesRoutes from './routes/leaguesRoutes';
 import authRoutes from './routes/authRoutes';
 
@@ -35,11 +35,11 @@ class Server{
     }
 
     routes(): void{
-        this.app.use('/api/match/', matchRoutes);
-        this.app.use('/api/auth/', authRoutes);
-        this.app.use('/api/player/', jugadoresRoutes);
-        this.app.use('/api/league/', leaguesRoutes);
-        this.app.use('/api/sport/', sportRoutes);
+        this.app.use('/api/match', matchRoutes);
+        this.app.use('/api/auth', authRoutes);
+        this.app.use('/api/player', playersRoutes);
+        this.app.use('/api/league', leaguesRoutes);
+        this.app.use('/api/sport', sportRoutes);
 
     }
 

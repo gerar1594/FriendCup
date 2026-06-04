@@ -334,7 +334,7 @@ class MatchController {
 
         try {
 
-            const querySqlWithNamePlayerLeague =`SELECT DISTINCT 
+            const querySql =`SELECT DISTINCT 
                                             m.IDMatch, 
                                             m.DayTrip, 
                                             m.JugadoresLocal, 
@@ -378,37 +378,11 @@ class MatchController {
                                         WHERE mp.IDPlayer = ?
                                         ORDER BY m.DayTrip ASC, m.Estado DESC;`
 
-            const querySql =`SELECT DISTINCT m.IDMatch, m.DayTrip, m.JugadoresLocal, m.JugadoresVisitante,
-                                m.Estado, m.Resultado, l.NameLeague, s.*, mp.Bando as bando,
-
-                                -- 🏠 IDs de los jugadores Locales estrictamente DE ESTE PARTIDO
-                                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
-                                FROM matchplayer mp_local
-                                JOIN players pl ON mp_local.IDPlayer = pl.IDPlayer
-                                WHERE mp_local.IDMatch = m.IDMatch
-                                AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
-
-                                -- 🏃‍♂️ IDs de los jugadores Visitantes estrictamente DE ESTE PARTIDO
-                                (SELECT JSON_ARRAYAGG(pl.NamePlayer)
-                                FROM matchplayer mp_visit
-                                JOIN players pl ON mp_visit.IDPlayer = pl.IDPlayer
-                                WHERE mp_visit.IDMatch = m.IDMatch
-                                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames
-
-
-                FROM matches m, matchplayer mp, leagues l, sports s, leagueplayer lp
-                WHERE m.IDMatch = mp.IDMatch
-                AND m.IDLeague = l.IDLeague
-                AND l.IDSport = s.IDSport
-                AND l.IDLeague = lp.IDLeague
-                AND mp.IDPlayer = ?
-                ORDER BY  m.DayTrip ASC, m.Estado DESC`;
-
             /*console.log("================== QUERY EJECUTADA ==================");
             console.log(pool.format(querySql, [idPlayer]));
             console.log("=====================================================");*/
 
-            const [userMatches]: any = await pool.query(querySqlWithNamePlayerLeague,[idPlayer]);
+            const [userMatches]: any = await pool.query(querySql,[idPlayer]);
             
             // IMPORTANTE: MySQL devuelve las columnas de tipo JSON ya parseadas como objetos JS de forma nativa.
 
@@ -471,7 +445,7 @@ class MatchController {
             INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
             INNER JOIN leagues l ON m.IDLeague = l.IDLeague
             INNER JOIN sports s ON l.IDSport = s.IDSport
-            WHERE m.IDLeague = ?
+            WHERE m.IDLeague = ? AND m.DayTrip IS NOT NULL
             ORDER BY m.DayTrip ASC, m.Estado DESC;`;
 
         // 2. Usamos pool.format para renderizar el string final con sus parámetros mapeados
@@ -494,6 +468,75 @@ class MatchController {
         });
 
     }
+    
+    public async getMatchesExtraByLeague(req: Request, res: Response): Promise<any> {
+        const { idleague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+
+        console.log(`Obteniendo partidos para Liga ${idleague} y Usuario ${currentUserId}`);
+
+       // 1. Guardamos el string de la query en una constante
+        const querySql = `SELECT DISTINCT
+                m.IDMatch,
+                m.DayTrip,
+                m.Estado,
+                m.Resultado,
+                l.NameLeague,
+                s.*,
+
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'NamePlayer', pl_loc.NamePlayer,
+                    'NamePlayerLeague', lp_loc.NamePlayerLeague
+                ))
+                FROM matchplayer mp_local
+                JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
+                -- Añadimos JOIN con leagueplayer para sacar el apodo de la liga
+                LEFT JOIN leagueplayer lp_loc ON lp_loc.IDPlayer = pl_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
+                WHERE mp_local.IDMatch = m.IDMatch
+                AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
+
+                -- 🏃‍♂️ Apodos/Nombres de los jugadores Visitantes de este partido
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'NamePlayer', pl_vis.NamePlayer,
+                    'NamePlayerLeague', lp_vis.NamePlayerLeague
+                ))
+                FROM matchplayer mp_visit
+                JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
+                -- Añadimos JOIN con leagueplayer para sacar el apodo de la liga
+                LEFT JOIN leagueplayer lp_vis ON lp_vis.IDPlayer = pl_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
+                WHERE mp_visit.IDMatch = m.IDMatch
+                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
+
+                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando
+
+            FROM matches m
+            INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
+            INNER JOIN leagues l ON m.IDLeague = l.IDLeague
+            INNER JOIN sports s ON l.IDSport = s.IDSport
+            WHERE m.IDLeague = ? AND m.DayTrip IS NULL
+            ORDER BY m.DayTrip ASC, m.Estado DESC;`;
+
+        // 2. Usamos pool.format para renderizar el string final con sus parámetros mapeados
+        /*console.log("================== QUERY EJECUTADA ==================");
+        console.log(pool.format(querySql, [currentUserId,idleague]));
+        console.log("=====================================================");*/
+
+        // 3. Pasamos la constante formateada directamente a la base de datos
+        const [matches]: any = await pool.query(querySql, [currentUserId, idleague]);
+        
+        const formattedMatches = matches.map((match: any) => ({
+            ...match,
+            JugadoresLocalNames: typeof match.JugadoresLocalNames === 'string' ? JSON.parse(match.JugadoresLocalNames) : match.JugadoresLocalNames,
+            JugadoresVisitanteNames: typeof match.JugadoresVisitanteNames === 'string' ? JSON.parse(match.JugadoresVisitanteNames) : match.JugadoresVisitanteNames,
+            NamesJugadoresPartido: typeof match.NamesJugadoresPartido === 'string' ? JSON.parse(match.NamesJugadoresPartido) : match.NamesJugadoresPartido
+        }));
+
+        res.json({
+            matches: formattedMatches
+        });
+
+    }
+    
 
     /**
      * 3. ACTUALIZAR EL MARCADOR DINÁMICO EN FORMATO JSON
@@ -501,7 +544,9 @@ class MatchController {
      */
     public async updateMatchResult(req: Request, res: Response): Promise<any> {
         const { idMatch } = req.params;
-        const { periodos,idPlayer } = req.body; // Array enviado: [{label: 'C1', local: 20, visitante: 15}, ...]
+        const { periodos } = req.body; // Array enviado: [{label: 'C1', local: 20, visitante: 15}, ...]
+        const currentUserId = req.headers['x-user-id'];
+
         // 🧩 PARSEADOR INTELIGENTE
         let datosPeriodos: any[] = [];
         if (req.body.periodos) {
@@ -519,7 +564,7 @@ class MatchController {
             await connection.beginTransaction();
             const [playerBando]: any = await connection.query(
                 `SELECT Bando FROM matchplayer WHERE IDMatch = ? AND IDPlayer = ?`,
-                [idMatch, idPlayer]
+                [idMatch, currentUserId]
             );
 
             if (playerBando.length === 0) {
@@ -619,7 +664,7 @@ class MatchController {
 
     public async validateMatchResult(req: Request, res: Response): Promise<any> {
         const { idMatch } = req.params;
-        const { idPlayer } = req.body; // ID del jugador que confirma desde Angular
+        const currentUserId = req.headers['x-user-id'];
 
         try {
             const connection = await pool.getConnection();
@@ -630,17 +675,18 @@ class MatchController {
                 // 1. OBTENER INFORMACIÓN DEL PARTIDO Y REGLAS DEL DEPORTE
                 // ==========================================================
                 const [matchData]: any = await connection.query(
-                    `SELECT m.IDLeague, m.Winner, m.Estado,
+                    `SELECT m.IDLeague, m.Winner, m.Estado, m.DayTrip,
                         (SELECT Bando FROM matchplayer WHERE IDMatch = m.IDMatch AND IDPlayer = ?) AS BandoEditor,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs
+                        l.Configuration
                     FROM matches m
                     JOIN leagues l ON m.IDLeague = l.IDLeague
                     JOIN sports s ON l.IDSport = s.IDSport
                     WHERE m.IDMatch = ?`,
-                    [idPlayer, idMatch]
+                    [currentUserId, idMatch]
                 );
-                if (matchData.length === 0) {
+                if (matchData.length === 0 ) {
                     await connection.rollback();
                     return res.status(404).json({ message: "Partido no encontrado." });
                 }
@@ -648,7 +694,7 @@ class MatchController {
                 const partido = matchData[0];
 
                 // Validación de seguridad: el usuario debe participar en el partido
-                if (!partido.BandoEditor || partido.IDAdmin != idPlayer) {
+                if (!partido.BandoEditor || partido.IDAdmin != currentUserId) {
                     await connection.rollback();
                     return res.status(403).json({ message: "No tienes permiso para confirmar este partido porque no participas en él." });
                 }
@@ -664,7 +710,7 @@ class MatchController {
                 // ==========================================================
                 let nuevoEstado = partido.Estado;
                 let debeCerrarYAsignar = false;
-                if(partido.IDAdmin == idPlayer) {
+                if(partido.IDAdmin == currentUserId) {
                     nuevoEstado = 'Jugado';
                     debeCerrarYAsignar = true;
                 } else if (partido.BandoEditor === 'Local' && partido.Estado === 'Confirmado Visitante') {
@@ -678,8 +724,17 @@ class MatchController {
                     return res.status(400).json({ message: "Falta la confirmación del bando contrario antes de consolidar el partido." });
                 }
 
+                 const [league]: any = await pool.query(
+                    `SELECT IDAdmin,Configuration FROM leagues l
+                    JOIN matches m ON l.IDLeague = m.IDLeague
+                    WHERE m.IDMatch = ? AND l.IDAdmin = ?`,
+                    [idMatch, currentUserId]
+                );
+
                 // DENTRO DE TU CIERRE EN 'validateMatchResult':
-                if (debeCerrarYAsignar) {
+                const configuration = JSON.parse(league[0].Configuration)
+
+                if (debeCerrarYAsignar && (matchData.DayTrip == null && configuration.sumarJornadasExtra)) {
                     // 🔥 Reutilizamos la función común de asignación de puntos
                     await asignarPuntosLiga(connection, partido);
                 }
@@ -713,17 +768,17 @@ class MatchController {
 
     public async adminForceUpdateAndValidate(req: Request, res: Response): Promise<any> {
         const { idMatch } = req.params;
-        const { periodos, idPlayer } = req.body; // idPlayer aquí es el ID del Admin corporativo
+        const currentUserId = req.headers['x-user-id'];
 
         let datosPeriodos: any[] = [];
         if (req.body.periodos) {
             datosPeriodos = typeof req.body.periodos === 'string' ? JSON.parse(req.body.periodos) : req.body.periodos;
         }
         const [isAdmin]: any = await pool.query(
-            `SELECT IDAdmin FROM leagues l
+            `SELECT IDAdmin,Configuration FROM leagues l
             JOIN matches m ON l.IDLeague = m.IDLeague
             WHERE m.IDMatch = ? AND l.IDAdmin = ?`,
-            [idMatch, idPlayer]
+            [idMatch, currentUserId]
         );
         if (isAdmin.length === 0) {
             return res.status(403).json({ message: "Acceso denegado. Solo el administrador de la liga puede realizar esta acción." });
@@ -756,7 +811,7 @@ class MatchController {
                 const partido = matchConfig[0];
 
                 // 🛑 Seguridad letal: Si el que ejecuta no coincide con el IDAdmin de la liga, rebotamos
-                if (partido.IDAdmin != idPlayer) {
+                if (partido.IDAdmin != currentUserId) {
                     await connection.rollback();
                     return res.status(403).json({ message: "Acceso denegado. No eres el administrador de esta liga." });
                 }
@@ -810,7 +865,10 @@ class MatchController {
                 );
 
                 // Reutilizamos el motor interno pasando la conexión transaccional
-                await asignarPuntosLiga(connection, partido);
+                const configuration = JSON.parse(isAdmin[0].Configuration)
+
+                if(partido.DayTrip != null || (partido.DayTrip == null && configuration.sumarJornadasExtra))
+                    await asignarPuntosLiga(connection, partido);
 
                 await connection.commit();
                 return res.status(200).json({
@@ -830,7 +888,242 @@ class MatchController {
         }
     }
 
-    
+    public async deleteMatch (req: Request, res: Response) {
+        const { idMatch } = req.body;
+        const currentUserId = req.headers['x-user-id'];
+
+        if (!idMatch) {
+            return res.status(400).json({ message: "El ID del partido es obligatorio." });
+        }
+
+        const [league]: any = await pool.query(
+            `SELECT IDAdmin,Configuration FROM leagues l
+            JOIN matches m ON l.IDLeague = m.IDLeague
+            WHERE m.IDMatch = ? AND l.IDAdmin = ?`,
+            [idMatch, currentUserId]
+        );
+        if (league.length === 0) {
+            return res.status(403).json({ message: "Acceso denegado. Solo el administrador de la liga puede realizar esta acción." });
+        }
+
+        try {
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            try {
+                // 1. Obtener los datos del partido, su estado y la liga
+                const [matchRows]: any = await connection.query(
+                    "SELECT IDMatch, DayTrip, IDLeague, Estado, Resultado FROM matches WHERE IDMatch = ?",
+                    [idMatch]
+                );
+
+                if (matchRows.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "El partido no existe." });
+                }
+
+                const { DayTrip: jornadaActual, IDLeague: idLiga, Estado: estadoPartido, Resultado: resultado } = matchRows[0];
+
+                // 2. OBTENER JUGADORES Y REVERTIR PUNTOS (Solo si el partido ya estaba Finalizado)
+
+                if (estadoPartido === 'Jugado' && resultado && (jornadaActual !== null || (jornadaActual === null && league[0].Configuration.sumarJornadasExtra))) {
+                    // Sacamos los jugadores de este partido y su bando
+                    const [playersRows]: any = await connection.query(
+                        "SELECT IDPlayer, Bando FROM matchplayer WHERE IDMatch = ?",
+                        [idMatch]
+                    );
+
+                    // Parseamos el resultado (Ejemplo esperado: "2-1" o "6-4 6-2")
+                    // Adapta esta lógica exacta a cómo almacenes tú el string del resultado
+                    console.log("Resultado bruto a parsear:", resultado);
+                    const setsLocal = resultado.totalLocal || 0;
+                    const setsVisitante = resultado.totalVisitante || 0;
+
+                    const localGana = setsLocal > setsVisitante;
+
+                    // Iteramos sobre los jugadores que jugaron el partido para restarles las estadísticas
+                    for (const player of playersRows) {
+                        const esLocal = player.Bando === 'Local';
+                        const haGanado = (esLocal && localGana) || (!esLocal && !localGana);
+
+                        // Calculamos los valores en negativo para "restarlos" en el UPDATE
+                        let puntosARestar = 0; // Ajusta tus puntos por victoria (3) / derrota (1)
+                        const partidosJugados = 1;
+                        let partidosGanados = 0;
+                        let partidosPerdidos = 0;
+                        let partidosEmpatados = 0; // Si manejas empates, ajusta esta lógica
+                        const setsFavor = esLocal ? setsLocal : setsVisitante;
+                        const setsContra = esLocal ? setsVisitante : setsLocal;
+
+                        if(setsFavor === setsContra) {
+                            puntosARestar = 1; // En caso de empate, restamos 1 punto a ambos
+                            partidosEmpatados = 1;
+                        } else if (setsFavor > setsContra) {
+                            puntosARestar = 3; // En caso de victoria, restamos 3 puntos
+                            partidosGanados = 1;
+                        } else {
+                            puntosARestar = 0; // En caso de derrota, no restamos puntos (o ajusta según tu sistema)
+                            partidosPerdidos = 1;
+                        }
+
+                        // Actualizamos la clasificación de la liga restando los datos de este partido
+                        await connection.query(
+                            `UPDATE leagueplayer
+                            SET Points = Points - ?,
+                                Matches = Matches - ?,
+                                Victories = Victories - ?,
+                                Defeats = Defeats - ?,
+                                Draws = Draws - ?
+                            WHERE IDLeague = ? AND IDPlayer = ?`,
+                            [puntosARestar, partidosJugados, partidosGanados, partidosPerdidos, partidosEmpatados, idLiga, player.IDPlayer]
+                        );
+                    }
+                }
+
+                // 3. BORRAR ASOCIACIONES EN MATCHPLAYER Y EL PARTIDO EN SÍ
+                await connection.query("DELETE FROM matchplayer WHERE IDMatch = ?", [idMatch]);
+                await connection.query("DELETE FROM matches WHERE IDMatch = ?", [idMatch]);
+
+                // 4. COMPROBACIÓN JORNADAS: ¿Era el último partido de esta jornada?
+                let mensajeAdicional = "";
+
+                if(jornadaActual !== null) {
+                    const [remainingMatches]: any = await connection.query(
+                        "SELECT 1 FROM matches WHERE IDLeague = ? AND DayTrip = ? LIMIT 1",
+                        [idLiga, jornadaActual]
+                    );
+
+
+                    if (remainingMatches.length === 0) {
+                        // Restamos 1 a las jornadas posteriores para que no queden huecos
+                        await connection.query(
+                            `UPDATE matches SET DayTrip = DayTrip - 1 WHERE IDLeague = ? AND DayTrip > ?`,
+                            [idLiga, jornadaActual]
+                        );
+                        mensajeAdicional = " y el calendario de jornadas se ha reestructurado.";
+                    }
+                }
+
+                // Consolidamos todos los cambios en la base de datos
+                await connection.commit();
+
+                res.json({
+                    message: `Partido eliminado con éxito. Se han recalculado los puntos de la clasificación${mensajeAdicional} 🔄🗑️`
+                });
+
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        } catch (error: any) {
+            console.error("❌ Error crítico al eliminar el partido y recalcular:", error, error.sql);
+            res.status(500).json({ message: "Error al procesar el borrado completo: " + error.message });
+        }
+    };
+
+    public async createMatch(req: Request, res: Response): Promise<any> {
+        const { idLeague, locales, visitantes } = req.body;
+        const currentUserId = req.headers['x-user-id'];
+        console.log(req.body)
+        if ( !idLeague ) {
+            return res.status(400).json({ message: "Datos incompletos. Se requiere al menos IDLeague y DayTrip." });
+        }
+
+        try {
+            // Verificar que el usuario es el administrador de la liga
+            const [league]: any = await pool.query(
+                `SELECT 1 FROM leagues WHERE IDLeague = ? AND IDAdmin = ?
+                UNION
+                SELECT 1 FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?
+                LIMIT 1;`,
+                [idLeague, currentUserId, idLeague, currentUserId]
+            );
+            
+            console.log("Resultado de la verificación de administrador:", league);
+            if (league.length === 0) {
+                return res.status(403).json({
+                    message: "Acceso denegated: No eres administrador ni jugador de esta liga."
+                });
+            }
+            const [anonimo] : any = await pool.query("SELECT J.* FROM players J WHERE J.NamePlayer = 'Anonimo'");
+            // 2. Filtrar IDs reales de jugadores para verificar su membresía de forma segura (Evita Inyección SQL)
+            const realPlayerIds = [...locales, ...visitantes].filter(id => id !== 'bot');
+
+            if (realPlayerIds.length > 0) {
+                // Generamos tantos signos de interrogación como jugadores reales haya: (?, ?, ?)
+                const placeholders = realPlayerIds.map(() => '?').join(',');
+                const [rows]: any = await pool.query(
+                    `SELECT DISTINCT IDPlayer FROM leagueplayer WHERE IDLeague = ? AND IDPlayer IN (${placeholders})`,
+                    [idLeague, ...realPlayerIds]
+                );
+
+                // Usamos un Set para comparar elementos únicos por si acaso se repitiese un ID por error
+                const uniqueRealPlayersCount = new Set(realPlayerIds).size;
+                if (rows.length !== uniqueRealPlayersCount) {
+                    return res.status(400).json({ message: "Error: Uno o más jugadores reales seleccionados no pertenecen a esta liga." });
+                }
+            }
+
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+            try {
+                // A. Insertar el partido base (Por defecto 'Pendiente')
+                const [matchResult]: any = await connection.query(
+                    "INSERT INTO matches (IDLeague, DayTrip, Estado) VALUES (?, NULL, 'Pendiente')",
+                    [idLeague]
+                );
+                const idMatch = matchResult.insertId;
+                console.log(idMatch);
+                let nIdAnonimo = 0;
+
+                // Función auxiliar interna para procesar cada bando
+                const processBando = async (playersArray: any[], bandoName: 'Local' | 'Visitante') => {
+
+                    for (const playerVal of playersArray) {
+                        let finalPlayerId: number;
+
+                        if (playerVal === 'bot') {
+                            finalPlayerId = anonimo[nIdAnonimo].IDPlayer;
+                            nIdAnonimo++;
+                        } else {
+                            finalPlayerId = Number(playerVal);
+                        }
+
+                        // Insertar la relación en matchplayer
+
+                        console.log(pool.format(`INSERT IGNORE INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)`, [idMatch, finalPlayerId, bandoName]))
+                        await connection.query(
+                            "INSERT IGNORE INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)",
+                            [idMatch, finalPlayerId, bandoName]
+                        );
+                    }
+                };
+
+                // Ejecutamos el procesado para ambos bandos
+                await processBando(locales, 'Local');
+                await processBando(visitantes, 'Visitante');
+
+                // Si todo ha ido bien, confirmamos los cambios de la transacción
+                await connection.commit();
+                return res.status(201).json({ 
+                    message: "Partido creado con éxito y asignado a su correspondiente jornada. 🗓️✨",
+                    idMatch 
+                });
+
+            } catch (transactionError: any) {
+                await connection.rollback();
+                throw transactionError; // Lo capturará el catch exterior
+            } finally {
+                connection.release();
+            }
+
+        } catch (error: any) {
+            console.error("Error al verificar permisos de administrador:", error.message);
+            return res.status(500).json({ message: "Error al verificar permisos de administrador: " + error.message });
+        }
+    }
 }
 
 async function asignarPuntosLiga(connection: any, partido: any): Promise<void> {

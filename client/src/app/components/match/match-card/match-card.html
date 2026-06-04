@@ -126,17 +126,24 @@
                             🔵 Confirmar
                         </button>
                     } @else {
-                        <span class="text-blue-500 font-semibold">🔵 Confirmando</span>
+                        <span class="text-blue-500 font-semibold text-red">🔵 Confirmando</span>
                     }
                 }
             }
         </span>
-        
-        @if (puedeEditar() && match().Estado !== 'Jugado') {
-            <button (click)="openEditModal()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
-                ✏️ {{ adminMode() ? 'Puntuar y validar' : 'Puntuar' }}
+        @if(adminMode()) {
+            <button (click)="deleteMatch()" class="text-red-500 border-l border-red-500 hover:bg-red-600 hover:text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+                <i class="fa-solid fa-xmark text-sm"></i> Eliminar
             </button>
         }
+
+        @if (puedeEditar() && match().Estado !== 'Jugado') {
+            <button (click)="openEditModal()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
+                ✏️ {{ (adminMode() || !this.match().DayTrip) ? 'Puntuar y validar' : 'Puntuar' }}
+            </button>
+        }
+
+        
     </div>
 
 </div>
@@ -145,6 +152,7 @@
     <app-modify-match-dialog
         [match]="selectedMatch()"
         [adminMode]="adminMode()"
+        [namePlayerLeague]=true
         (onClose)="selectedMatch.set(null)"
         (onSaved)="loadUserMatches()">
     </app-modify-match-dialog>

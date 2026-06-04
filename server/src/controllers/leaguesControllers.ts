@@ -72,7 +72,7 @@ class LeaguesController{
 
         const [league] : any = await pool.query(`SELECT L.*, S.*  FROM leagues L, sports S WHERE L.IDSport = S.IDSport AND L.IDLeague = ?`,[idleague]);
         const [classification] = await pool.query(
-            `SELECT P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws,
+            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws,
                 IF(LP.IDPlayer = ?, 1, 0) AS IsCurrentUser
             FROM leagueplayer LP
                 JOIN players P ON LP.IDPlayer = P.IDPlayer
@@ -115,7 +115,8 @@ class LeaguesController{
                     "jornada": {
                         "tipo": "",
                         "value": 0
-                    }
+                    },
+                    'sumarJornadasExtra': false,
                 };
                 const [leagueResult]: any = await connection.query(
                     `INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado, Configuration) 
@@ -192,48 +193,86 @@ class LeaguesController{
     }
 
     public async leave(req: Request, res: Response): Promise<any> {
-        const { idLeague, idPlayer } = req.body;
+        const { idLeague } = req.body;
+        const currentUserId = req.headers['x-user-id'];
 
         try {
             const connection = await pool.getConnection();
             await connection.beginTransaction();
 
             try {
-                // 1. Buscar un Bot Comodín global que esté libre en ESTA liga específica
+                // 1. Consultar el estado de la liga
+                const [leagueRows]: any = await connection.query(
+                    "SELECT Estado FROM leagues WHERE IDLeague = ?",
+                    [idLeague]
+                );
+
+                if (leagueRows.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "La liga especificada no existe." });
+                }
+
+                const estadoLiga = leagueRows[0].Estado;
+
+                // 2. Si la liga está abierta, comprobamos si tiene partidos generados en esta liga
+                if (estadoLiga === 'Abierta') {
+                    const [matchRows]: any = await connection.query(
+                        `SELECT 1 FROM matchplayer mp
+                        INNER JOIN matches m ON mp.IDMatch = m.IDMatch
+                        WHERE m.IDLeague = ? AND mp.IDPlayer = ? LIMIT 1`,
+                        [idLeague, currentUserId]
+                    );
+
+                    // Si NO tiene ningún partido asignado en la liga, hacemos BORRADO LIMPIO (DELETE)
+                    if (matchRows.length === 0) {
+                        await connection.query(
+                            "DELETE FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?",
+                            [idLeague, currentUserId]
+                        );
+
+                        await connection.commit();
+                        return res.json({ 
+                            message: "Te has desapuntado de la liga correctamente de forma limpia. El torneo sigue abierto. 📑" 
+                        });
+                    }
+                }
+
+                // =========================================================================
+                // 3. FLUJO DE BOT COMODÍN (Si la liga está "En Curso"/"Finalizada" O tiene partidos)
+                // =========================================================================
+                
+                // Buscar un Bot Comodín global que esté libre en ESTA liga específica
                 const [availableBots]: any = await connection.query(
                     `SELECT IDPlayer FROM players 
                     WHERE NamePlayer LIKE 'Bot Comodín %' 
                     AND IDPlayer NOT IN (
                         SELECT IDPlayer FROM leagueplayer WHERE IDLeague = ?
                     ) 
-                    ORDER BY CAST(SUBSTRING(NamePlayer, 13) AS UNSIGNED) ASC 
+                    ORDER BY CAST(SUBSTRING(NamePlayer, 13) AS UNSIGNED) ASC
                     LIMIT 1`,
                     [idLeague]
                 );
 
-                // Si por alguna razón extrema se llenaran los 50 bots en una sola liga
+                // Si por alguna razón extrema se llenaran los bots en una sola liga
                 if (availableBots.length === 0) {
                     await connection.rollback();
-                    return res.status(400).json({ 
-                        message: "No quedan plazas de Bots disponibles en esta liga. Contacta al administrador." 
+                    return res.status(400).json({
+                        message: "No quedan plazas de Bots disponibles en esta liga para congelar tus datos. Contacta al administrador."
                     });
                 }
 
                 const idBotLibre = availableBots[0].IDPlayer;
-                
-                // 2. ¡EL CAMBIAZO EN CASCADA! 
-                // Transferimos el puesto al Bot Comodín encontrado.
-                // Gracias al ON UPDATE CASCADE que configuramos antes, el bot asume de forma 
-                // independiente los puntos, estadísticas y todos los partidos (jugados y pendientes).
 
+                // ¡EL CAMBIAZO EN CASCADA!
+                // El bot asume de forma independiente los puntos, estadísticas y partidos gracias al CASCADE.
                 await connection.query(
                     "UPDATE leagueplayer SET IDPlayer = ? WHERE IDLeague = ? AND IDPlayer = ?",
-                    [idBotLibre, idLeague, idPlayer]
+                    [idBotLibre, idLeague, currentUserId]
                 );
 
                 await connection.commit();
                 res.json({ 
-                    message: "Te has desvinculado de la liga correctamente. Una plaza automatizada mantendrá tus puntos y tus rotaciones." 
+                    message: "Te has desvinculado de la liga correctamente. Una plaza automatizada mantendrá tus puntos y tus rotaciones."
                 });
 
             } catch (err) {
@@ -243,6 +282,7 @@ class LeaguesController{
                 connection.release();
             }
         } catch (error: any) {
+            console.error("❌ Error crítico al procesar la baja:", error);
             res.status(500).json({ message: "Error crítico al procesar la baja: " + error.message });
         }
     }
@@ -387,6 +427,9 @@ class LeaguesController{
                     } else {
                         console.log(`No se generan jornadas. Solicitadas: ${targetJornadas}, Ya existentes: ${currentMaxJornada}`);
                     }
+                }
+
+                if(configuration?.sumarJornadasExtra) {
                 }
 
 

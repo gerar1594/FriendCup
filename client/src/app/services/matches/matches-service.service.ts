@@ -7,6 +7,7 @@ import { environment } from '../../../environments/environment';
     providedIn: 'root',
 })
 export class MatchesService {
+    
 
     private http = inject(HttpClient);
     private API_URL = environment.apiUri + '/match';
@@ -16,6 +17,9 @@ export class MatchesService {
     }
     getMatchByLeague(idLeague: any) {
         return this.http.get<any>(`${this.API_URL}/league/${idLeague}`);
+    }
+    getMatchExtraByLeague(idLeague: any) {
+        return this.http.get<any>(`${this.API_URL}/league/extra/${idLeague}`);
     }
     updateResult(matchId: any, payload: { totalLocal?: number; totalVisitante?: number; periodos: any[]; }) {
         console.log(`${this.API_URL}/${matchId}`, payload) ;
@@ -28,6 +32,13 @@ export class MatchesService {
     validateMatchAdmin(matchId: any, payload: { idPlayer: any, periodos: any[] }) {
         console.log(`${this.API_URL}/${matchId}/admin`, payload) ;
         return this.http.put<any>(`${this.API_URL}/${matchId}/admin`, payload);
+    }
+    deleteMatch(matchId: any) {
+        const payload = { idMatch: matchId };
+        return this.http.delete<any>(`${this.API_URL}/`, { body: payload });
+    }
+    createManualMatch(payload: { idLeague: any; locales: any[]; visitantes: any[] }) {
+        return this.http.post<any>(`${this.API_URL}/create`, payload);
     }
 
 }

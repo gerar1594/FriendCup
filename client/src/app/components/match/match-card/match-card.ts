@@ -36,7 +36,7 @@ export class MatchCard {
     protected puedeEditar = computed(() => {
         const partido = this.match();
         // Si no vienen IDs de jugadores, por seguridad no dejamos editar
-        if( this.adminMode() ) {
+        if( this.adminMode() || partido.DayTrip === null ) {
             return true; // Si estás en modo admin, puedes editar cualquier partido
         }
         if(partido.bando === null) return false;
@@ -130,5 +130,17 @@ export class MatchCard {
 
     closeModal() {
         this.selectedMatch.set(null);
+    }
+
+    deleteMatch() {
+        // Aquí iría la lógica para eliminar el partido, probablemente llamando a un método en MatchesService
+        // Ejemplo:
+        this.matchesService.deleteMatch(this.match().IDMatch).subscribe({
+             next: (res) => {
+                this.notificationService.show(res.message, 'success');
+                this.loadMatches.emit();
+             },
+             error: (err) => this.notificationService.show(err.message, 'error')
+         });
     }
 }

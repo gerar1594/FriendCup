@@ -7,10 +7,14 @@ import { AuthService } from '../../../services/auth/auth.service';
 import { MatchCard } from "../../match/match-card/match-card";
 import { MatchesService } from '../../../services/matches/matches-service.service';
 import { NotificationService } from '../../../services/notification/notification.service';
+import { Clasification } from "../clasification/clasification";
+import { AddMatchModal } from "../../match/add-match-modal/add-match-modal";
+import { PlayerService } from '../../../services/players/player-service.service';
 
+type LeagueTab = 'clasificacion' | 'jornadas' | 'extras';
 @Component({
     selector: 'app-league',
-    imports: [MatchCard, CommonModule], // Añadido CommonModule por si usas directivas básicas
+    imports: [MatchCard, CommonModule, Clasification, AddMatchModal], // Añadido CommonModule por si usas directivas básicas
     templateUrl: './league.html',
     styleUrl: './league.scss',
 })
@@ -23,18 +27,21 @@ export class League implements OnInit {
     private matchService = inject(MatchesService);
     private authService = inject(AuthService);
     private notifService = inject(NotificationService);
-
     // Signals para reactividad limpia
     idLeague = signal<number>(0);
     idPlayer = signal<number | null>(null);
     isPlayer = signal<boolean>(false);
-    isEditingName = signal<boolean>(false);
-    editNameValue = signal<string>('');
+    
 
     leagueData = signal<any>(null);
     classification = signal<any[]>([]);
-    protected matches = signal<any[]>([]); 
+    protected matches = signal<any[]>([]);
+    protected matchesExtra = signal<any[]>([]);
     adminMode = signal<boolean>(false); 
+
+    // Agrega el Signal dentro de tu clase
+    activeTab = signal<LeagueTab>('clasificacion');
+    isMatchModalOpen = signal<boolean>(false);
 
     // Función auxiliar para agrupar los partidos por Jornada en el HTML
     protected jornadas = computed(() => {
@@ -56,15 +63,12 @@ export class League implements OnInit {
         this.route.params.subscribe(params => {
             // 🎯 EL ARREGLO: Apagamos el modo admin inmediatamente al cambiar de torneo
             this.adminMode.set(false); 
-            
             this.idLeague.set(Number(params['id']));
             this.loadLeagueData();
         });
     }
 
-    isEqualUser(playerName: string): boolean {
-        return playerName === this.authService.currentUser()?.nombre;
-    }
+
 
     /**
      * Carga todos los datos de la liga.
@@ -87,7 +91,28 @@ export class League implements OnInit {
         this.matchService.getMatchByLeague(this.idLeague()).subscribe({
             next: (res) => {
                 this.matches.set(res.matches);
-                
+
+                // Si le pedimos reintentar (porque venimos de un cambio de estado) y aún no hay partidos
+                if (retryIfMatchesEmpty && (!res.matches || res.matches.length === 0)) {
+                    console.log('⏳ Los partidos aún se están generando en el servidor. Reintentando en 1.5 segundos...');
+                    setTimeout(() => {
+                        this.loadLeagueData(true); // Reintento recursivo controlado
+                    }, 1500);
+                } else if (res.matches && res.matches.length > 0) {
+                    // Si ya hay partidos, hacemos el scroll correspondiente
+                    setTimeout(() => {
+                        this.scrollToLastJornada();
+                    }, 100);
+                }
+            },
+            error: (err) => {
+                console.error('Error al cargar partidos:', err);
+            }
+        });
+        this.matchService.getMatchExtraByLeague(this.idLeague()).subscribe({
+            next: (res) => {
+                this.matchesExtra.set(res.matches);
+
                 // Si le pedimos reintentar (porque venimos de un cambio de estado) y aún no hay partidos
                 if (retryIfMatchesEmpty && (!res.matches || res.matches.length === 0)) {
                     console.log('⏳ Los partidos aún se están generando en el servidor. Reintentando en 1.5 segundos...');
@@ -221,6 +246,14 @@ export class League implements OnInit {
         });*/
     }
 
+    onChangeSumarExtra(event: Event) {
+        const checkbox = event.target as HTMLInputElement;
+        const isChecked = checkbox.checked;
+        
+        this.leagueData().Configuration.sumarJornadasExtra = isChecked; // Actualizamos el tipo de jornada en el frontend para que se refleje inmediatamente
+
+
+    }
 
     onSaveConfiguration(){
         this.leaguesService.updateLeagueConfiguration(this.leagueData().IDLeague, this.leagueData().Configuration).subscribe({
@@ -256,49 +289,4 @@ export class League implements OnInit {
         }
     }
 
-    onStartEdit() {
-        // Buscamos el nombre que tiene actualmente (優先 NamePlayerLeague, si no NamePlayer)
-        const miFila = this.classification().find(row => row.IsCurrentUser);
-        const nombreActual = miFila ? (miFila.NamePlayerLeague || miFila.NamePlayer) : '';
-
-        this.editNameValue.set(nombreActual);
-        this.isEditingName.set(true);
-    }
-
-    // 3. Función que guarda los cambios al pulsar el "tick"
-    onSaveInlineName() {
-        const nuevoNombre = this.editNameValue().trim();
-        const miFila = this.classification().find(row => row.IsCurrentUser);
-        const nombreActual = miFila ? (miFila.NamePlayerLeague || miFila.NamePlayer) : '';
-
-        // Si el nombre se queda vacío, no hacemos nada
-        if (!nuevoNombre) {
-            this.isEditingName.set(false);
-            return;
-        }
-
-        // Si el nombre no ha cambiado, simplemente cerramos el modo edición
-        if (nuevoNombre === nombreActual) {
-            this.isEditingName.set(false);
-            return;
-        }
-
-        // Si ha cambiado, disparamos la petición al servicio
-        this.leaguesService.updateNamePlayerLeague(this.idLeague(), nuevoNombre).subscribe({
-            next: (res: any) => {
-                this.notifService.show(res.message, 'success');
-                this.isEditingName.set(false); // Cerramos el input
-                this.loadLeagueData(); // 🔄 Recargamos para actualizar la tabla
-            },
-            error: (err) => {
-                console.error(err);
-                this.notifService.show(err.error?.message || 'Error al cambiar tu apodo', 'error');
-            }
-        });
-    }
-
-    // 4. Función por si pulsa Escape o quiere cancelar
-    onCancelEdit() {
-        this.isEditingName.set(false);
-    }
 }

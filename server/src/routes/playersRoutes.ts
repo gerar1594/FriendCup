@@ -10,7 +10,9 @@ class PlayersRoutes{
     }
 
     config(): void{
+        this.router.get('/anonimo', playersController.getAnonimo);
         this.router.get('/:idplayer', playersController.get);
+
     }
 
 

@@ -100,6 +100,17 @@
                                 (change)="onChangeValueJornada($event)" >
                         </div>
                     </div>
+                    <div class="flex items-center gap-3 md:mt-6 h-full min-h-[42px]">
+                        <input 
+                            type="checkbox"
+                            id="sumExtraMatches"
+                            [checked]="leagueData().Configuration.sumarJornadasExtra"
+                            (change)="onChangeSumarExtra($event)"
+                            class="w-5 h-5 text-blue-600 bg-white border-neutral-300 rounded-sm focus:ring-blue-500 cursor-pointer transition-colors" />
+                        <label for="sumExtraMatches" class="text-sm font-medium text-neutral-700 cursor-pointer select-none">
+                            Sumar puntos de partidos extra (externos/anónimos)
+                        </label>
+                    </div>
                     <button 
                         (click)="onSaveConfiguration()"
                         class="mt-4 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer" >
@@ -114,141 +125,109 @@
             }
         </header>
 
-        <section class="bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] mb-8">
-            <h2 class="mt-0 text-neutral-800 text-xl font-bold mb-6">📊 Tabla de Posiciones Individual</h2>
+        <div class="flex border-b border-neutral-200 mb-6 gap-2">
+            <button 
+                (click)="activeTab.set('clasificacion')"
+                [ngClass]="activeTab() === 'clasificacion' ? 'border-blue-500 text-blue-600 font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'"
+                class="py-3 px-6 border-b-2 text-sm font-medium transition-all cursor-pointer flex items-center gap-2 outline-none">
+                📊 Clasificación
+            </button>
+            <button 
+                (click)="activeTab.set('jornadas')"
+                [ngClass]="activeTab() === 'jornadas' ? 'border-blue-500 text-blue-600 font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'"
+                class="py-3 px-6 border-b-2 text-sm font-medium transition-all cursor-pointer flex items-center gap-2 outline-none">
+                🗓️ Jornadas
+            </button>
+            <button
+                (click)="activeTab.set('extras')"
+                [ngClass]="activeTab() === 'extras' ? 'border-blue-500 text-blue-600 font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'"
+                class="py-3 px-6 border-b-2 text-sm font-medium transition-all cursor-pointer flex items-center gap-2 outline-none">
+                🗓️ Jornadas extra
+            </button>
+
+        </div>
+
+        <main class="bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] min-h-[350px]">
             
-            <div class="w-full overflow-x-auto rounded-lg border border-neutral-100">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-neutral-50 border-b border-neutral-200">
-                            <th class="text-center p-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[40px]">Pos</th>
-                            <th class="text-left p-4 md:pl-4 md:pr-4 pl-1 pr-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider w-full">Jugador</th>
-                            <th class="text-center p-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Pts</th>
-                            <th class="text-center p-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">PJ</th>
-                            <th class="text-center p-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">PG</th>
-                            <th class="text-center p-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">PP</th>
-                            <th class="text-center p-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">PE</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (row of classification(); track row.NamePlayer; let idx = $index) {
-                            <tr class="border-b border-neutral-100 last:border-none transition-colors hover:bg-neutral-50/50"
-                                [ngClass]="{'bg-emerald-50/40 hover:bg-emerald-50/60': this.isEqualUser(row.NamePlayer)}">
+            @if (activeTab() === 'clasificacion') {
+                <div class="animate-in fade-in duration-200">
+                    <app-clasification 
+                        [classification]="classification()" 
+                        [idLeague]="idLeague()" 
+                        (onLeagueDataRefresh)="this.loadLeagueData()">
+                    </app-clasification>
+                </div>
+            }
 
-                                <td class="text-center p-1 text-lg font-bold w-[40px]"
-                                    [ngClass]="this.isEqualUser(row.NamePlayer) ? 'text-emerald-600' : 'text-neutral-700'">
-                                    @if (idx === 0) { 🥇 }
-                                    @else if (idx === 1) { 🥈 }
-                                    @else if (idx === 2) { 🥉 }
-                                    @else { {{ idx + 1 }} }
-                                </td>
+            @if (activeTab() === 'jornadas') {
+                <div class="animate-in fade-in duration-200">
+                    @if (matches().length > 0) {
+                        <div class="flex gap-6 overflow-x-auto pb-4 pt-2 scroll-smooth snap-x snap-mandatory 
+                                    [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-neutral-100 [&::-webkit-scrollbar-track]:rounded-lg 
+                                    [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:rounded-lg hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400">
 
-                                <td class="p-4 md:pl-4 md:pr-4 pl-1 pr-1 font-medium text-sm w-full"
-                                    [ngClass]="this.isEqualUser(row.NamePlayer) ? 'text-emerald-600' : 'text-neutral-800'">
-                                    @if (row.IsCurrentUser && isEditingName()) {
-                                        <div class="flex items-center gap-2 animate-in fade-in duration-150">
-                                            <input 
-                                                type="text" 
-                                                [value]="editNameValue()"
-                                                (input)="editNameValue.set($any($event.target).value)"
-                                                (keydown.enter)="onSaveInlineName()"
-                                                (keydown.escape)="onCancelEdit()"
-                                                class="p-1 px-2 text-xs rounded border border-neutral-300 bg-white text-neutral-800 outline-none focus:border-emerald-500 w-full max-w-[150px]"
-                                                maxlength="50"
-                                                focus
-                                            />
-                                            <div>
-                                                <button 
-                                                    (click)="onSaveInlineName()"
-                                                    class="text-emerald-600 hover:text-emerald-700 cursor-pointer p-1"
-                                                    title="Guardar cambios">
-                                                    <i class="fa-solid fa-check text-base"></i>
-                                                </button>
-                                                <button
-                                                    (click)="onCancelEdit()"
-                                                    class="text-neutral-400 hover:text-neutral-500 cursor-pointer p-1"
-                                                    title="Cancelar">
-                                                    <i class="fa-solid fa-xmark text-red-600"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    } 
-                                    @else {
-                                        <div class="flex items-center flex-wrap gap-1">
-                                            @if(row.NamePlayerLeague) {
-                                                {{ row.NamePlayerLeague }}
-                                            } @else {
-                                                {{ row.NamePlayer }}
-                                            }
+                            @for (jornada of jornadas(); track jornada) {
+                                <div class="flex-none w-[100%] md:w-[400px] max-w-[450px] bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden border border-neutral-200 snap-center">
+                                    <div class="bg-neutral-800 p-3 text-center">
+                                        <h3 class="m-0 text-white text-base font-bold">Jornada {{ jornada }}</h3>
+                                    </div>
 
-                                            @if (row.IsCurrentUser) {
-                                                <button 
-                                                    (click)="onStartEdit()" 
-                                                    class="ml-2 text-neutral-400 hover:text-emerald-600 transition-colors cursor-pointer p-0.5"
-                                                    title="Editar apodo">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </button>
-                                            }
-                                        </div>
-                                    }
-                                </td>
-
-                                <td class="text-center p-3 text-base font-bold text-neutral-800">{{ row.Points }}</td>
-                                <td class="text-center p-3 text-sm text-neutral-600">{{ row.Matches }}</td>
-                                <td class="text-center p-3 text-sm font-semibold text-emerald-500">{{ row.Victories }}</td>
-                                <td class="text-center p-3 text-sm font-semibold text-red-500">{{ row.Defeats }}</td>
-                                <td class="text-center p-3 text-sm font-semibold text-amber-500">{{ row.Draws }}</td>
-                            </tr>
-                        } @empty {
-                            <tr>
-                                <td colspan="7" class="text-center p-12 text-neutral-400 italic text-sm">
-                                    Aún no hay jugadores inscritos en esta liga. ¡Comparte el código!
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-8 w-full">
-                <h2 class="text-neutral-800 text-xl font-bold mb-4 pb-2 border-b border-neutral-100">🗓️ Calendario y Jornadas</h2>
-
-                @if (matches().length > 0) {
-                    <div class="flex gap-6 overflow-x-auto pb-4 pt-2 scroll-smooth snap-x snap-mandatory 
-                                [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-neutral-100 [&::-webkit-scrollbar-track]:rounded-lg 
-                                [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:rounded-lg hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400">
-
-                        @for (jornada of jornadas(); track jornada) {
-                            <div class="flex-none w-[100%] md:w-[400px] max-w-[450px] bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] overflow-hidden border border-neutral-200 snap-center">
-                                <div class="bg-neutral-800 p-3 text-center">
-                                    <h3 class="m-0 text-white text-base font-bold">Jornada {{ jornada }}</h3>
+                                    <div class="flex flex-col py-2">
+                                        @for (match of getMatchesByJornada(jornada); track match.IDMatch) {
+                                            <app-match-card 
+                                                class="m-2 bg-neutral-50 rounded-lg block overflow-hidden"
+                                                [adminMode]="adminMode()"
+                                                [match]="match" 
+                                                [showDatails]="false"
+                                                [namePlayerLeague]="true"
+                                                (loadMatches)="loadLeagueData()">
+                                            </app-match-card>
+                                        }
+                                    </div>
                                 </div>
+                            }
+                        </div>
+                    } @else {
+                        <div class="text-center p-12 bg-neutral-50 rounded-lg border border-dashed border-neutral-200 text-neutral-500 text-sm my-4">
+                            <p class="m-0 font-medium">Aún no se han generado partidos para esta liga.</p>
+                        </div>
+                    }
+                </div>
+            }
+            @if (activeTab() === 'extras') {
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6">
+                    @for (match of matchesExtra(); track match.IDMatch) {
+                        <app-match-card 
+                            [adminMode]="adminMode()"
+                            [match]="match" 
+                            [showDatails]="false"
+                            [namePlayerLeague]="true"
+                            (loadMatches)="loadLeagueData()">
+                        </app-match-card>
+                    }
+                </div>
+            }
 
-                                <div class="flex flex-col py-2">
-                                    @for (match of getMatchesByJornada(jornada); track match.IDMatch) {
-                                        <app-match-card 
-                                            class="m-2 bg-neutral-50 rounded-lg block overflow-hidden"
-                                            [adminMode]="adminMode()"
-                                            [match]="match" 
-                                            [showDatails]="false"
-                                            [namePlayerLeague]="true"
-                                            (loadMatches)="loadLeagueData()">
-                                        </app-match-card>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                    </div>
-                } @else {
-                    <div class="text-center p-8 bg-neutral-50 rounded-lg border border-dashed border-neutral-200 text-neutral-500 text-sm">
-                        <p class="m-0">Aún no se han generado partidos para esta liga.</p>
-                    </div>
-                }
-            </div>
-        </section>
+        </main>
 
     </div>
+    <button 
+        (click)="isMatchModalOpen.set(true)" 
+        class="fixed bottom-6 left-6 z-40 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 cursor-pointer flex items-center justify-center group"
+        title="Añadir Partido Manualmente">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+    </button>
+
+    <app-add-match-modal 
+        [(isOpen)]="isMatchModalOpen" 
+        [idLeague]="idLeague()"
+        [classification]="classification()"
+        [jornadas]="jornadas()"
+        (onSaved)="loadLeagueData()">
+    </app-add-match-modal>
+
 } @else {
     <div class="text-center py-16 text-neutral-500 italic text-sm">Cargando datos del torneo...</div>
 }

@@ -22,6 +22,8 @@ export class ModifyMatchDialog implements OnInit {
     match = input.required<any>();
     private authService = inject(AuthService);
     adminMode = input<boolean>(false);
+    namePlayerLeague = input<boolean>(false);
+
     
 
     // Eventos para avisar al padre que cerramos o guardamos
@@ -40,7 +42,6 @@ export class ModifyMatchDialog implements OnInit {
         setTimeout(() => {
 
             const marcador = this.match().Resultado;
-
             if (marcador && marcador.periodos) {
                 // Deep clone para editar sin afectar la lista de fondo
                 this.formPeriodos.set(JSON.parse(JSON.stringify(marcador.periodos)));
@@ -91,7 +92,7 @@ export class ModifyMatchDialog implements OnInit {
         if(this.authService.currentUser()) {
             const payload = { periodos: this.formPeriodos(), idPlayer: this.authService.currentUser().idPlayer }; // Enviamos solo los periodos, el backend recalculará los totales
 
-            if(this.adminMode()) {
+            if(this.adminMode() || !this.match().DayTrip) {
                 this.matchesService.validateMatchAdmin(idMatch, payload).subscribe({
                     next: (res) => {
                         this.notificationService.show(res.message, 'success');

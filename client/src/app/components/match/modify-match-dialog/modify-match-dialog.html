@@ -10,14 +10,32 @@
         </div>
 
         <div class="flex items-center justify-center p-6 gap-4 bg-white">
-            <div class="flex-1 font-bold text-neutral-700 text-base text-right truncate">
-                {{ match().JugadoresLocal }}
+            <div class="flex-1 flex flex-col items-center font-bold text-neutral-700 text-base text-right truncate">
+                @for (item of this.match().JugadoresLocalNames; track $index) {
+                    <div class="inline-flex gap-1 text-xs">
+                        @if (namePlayerLeague()) {
+                            {{ item.NamePlayerLeague || item.NamePlayer }}
+                        }
+                        @else{
+                            {{ item.NamePlayer }}
+                        }
+                    </div>
+                }
             </div>
             <div class="bg-neutral-100 text-neutral-400 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-extrabold border-2 border-neutral-200 shrink-0">
                 VS
             </div>
-            <div class="flex-1 font-bold text-neutral-700 text-base text-left truncate">
-                {{ match().JugadoresVisitante }}
+            <div class="flex-1 flex flex-col items-center font-bold text-neutral-700 text-base text-left truncate">
+                @for (item of this.match().JugadoresLocalNames; track $index) {
+                    <div class="inline-flex gap-1 text-xs">
+                        @if (namePlayerLeague()) {
+                            {{ item.NamePlayerLeague || item.NamePlayer }}
+                        }
+                        @else{
+                            {{ item.NamePlayer }}
+                        }
+                    </div>
+                }
             </div>
         </div>
 

@@ -12,7 +12,7 @@ class PlayersController{
         const { idplayer } = req.params;
         //let idPlayer: string = req.headers["id"] as string;
 
-        const players = await pool.query("SELECT J.* FROM players J, leagues L WHERE J.IDLeague = L.IDLeague AND J.IDPlayer = ?",[idplayer]);
+        const players = await pool.query("SELECT J.* FROM players J, leagueplayer lp , leagues L WHERE J.IDPlayer = lp.IDPlayer AND lp.IDLeague = L.IDLeague AND J.IDPlayer = ?",[idplayer]);
         if(players.length > 0){
             res.json(players[0]);
         } else {
@@ -25,7 +25,7 @@ class PlayersController{
 
         const { idplayer } = req.params;
 
-        const players = await pool.query("SELECT J.*, L.* FROM players J, leagues L WHERE J.IDLeague = L.IDLeague AND J.IDPlayer = ?",[idplayer]);
+        const players = await pool.query("SELECT J.*, L.* FROM players J, leagueplayer lp , leagues L WHERE J.IDPlayer = lp.IDPlayer AND lp.IDLeague = L.IDLeague AND J.IDPlayer = ?",[idplayer]);
         if(players.length > 0){
             res.json(players[0]);
         } else {
@@ -49,7 +49,14 @@ class PlayersController{
         const { id } = req.params;
         await pool.query("UPDATE players set ? WHERE id = ?",[req.body, id]);
         res.json({message:" El jugador fue actualizado"});
-
+    }
+    public async getAnonimo(req: Request, res: Response): Promise<any>{
+        const [player] = await pool.query("SELECT J.* FROM players J WHERE J.NamePlayer = 'Anonimo'");
+        if(player){
+            res.json(player);
+        } else {
+            res.status(404).json({message: "El jugador no existe"});
+        }
 
     }
 }
