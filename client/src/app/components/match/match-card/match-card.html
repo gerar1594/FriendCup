@@ -9,31 +9,40 @@
                 {{ match().NameLeague }}
             </span>
             <span class="text-xs font-semibold text-neutral-500 whitespace-nowrap">
-                Jornada {{ match().DayTrip }}
+                @if(match().DayTrip){
+                    Jornada {{ match().DayTrip }}
+                }
+                @else {
+                    Jornada Extra
+                }
             </span>
         </div>
     }
 
     <div class="flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden">
-        
         <div class="flex items-center bg-neutral-50 border-b-2 border-neutral-200 px-3 py-2">
-            <div class="flex-[3] flex items-center justify-start text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                Equipo
+            <div class="flex-[3] flex items-center justify-start text-xs font-semibold text-neutral-500 tracking-wider">
+                EQUIPO
+                <span class="text-xs font-bold" [ngClass]="match().Estado === 'Jugado' ? 'text-emerald-600' : 'text-neutral-500'">
+                @switch( match().Estado ) {
+                    @case ("Jugado") { 🟢 }
+                    @case ('Pendiente') { 🟡 }
+                    @default {
+                        <span class="text-blue-500 font-semibold">🔵</span>
+                    }
+                }
+            </span>
             </div>
             @if (match().Resultado && match().Resultado.periodos) {
                 @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">
-                        {{ periodo.label }}
-                    </div>
+                    <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">{{ periodo.label }}</div>
                 }
             } @else {
                 <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S1</div>
                 <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S2</div>
                 <div class="w-10 flex items-center justify-center text-xs font-semibold text-neutral-500 font-mono">S3</div>
             }
-            <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center text-xs font-bold text-neutral-600">
-                TOT
-            </div>
+            <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center text-xs font-bold text-neutral-600">TOT</div>
         </div>
 
         <div class="flex items-center border-b border-neutral-100 px-3 py-2 last:border-none">
@@ -46,21 +55,14 @@
                 <div class="flex flex-col gap-1">
                     @for (item of this.match().JugadoresLocalNames; track $index) {
                         <div class="inline-flex gap-1 text-xs">
-                            @if (namePlayerLeague()) {
-                                {{ item.NamePlayerLeague || item.NamePlayer }}
-                            }
-                            @else{
-                                {{ item.NamePlayer }}
-                            }
+                            {{ namePlayerLeague() ? (item.NamePlayerLeague || item.NamePlayer) : item.NamePlayer }}
                         </div>
                     }
                 </div>
             </div>
             @if (match().Resultado && match().Resultado.periodos) {
                 @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">
-                        {{ periodo.local }}
-                    </div>
+                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">{{ periodo.local }}</div>
                 }
             } @else {
                 <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
@@ -68,7 +70,7 @@
                 <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
             }
             <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center font-mono text-lg font-black text-neutral-900">
-                {{ match().Resultado.totalLocal }}
+                {{ match().Resultado?.totalLocal }}
             </div>
         </div>
 
@@ -82,21 +84,14 @@
                 <div class="flex flex-col gap-1">
                     @for (item of this.match().JugadoresVisitanteNames; track $index) {
                         <div class="inline-flex gap-1 text-xs">
-                            @if (namePlayerLeague()) {
-                                {{ item.NamePlayerLeague || item.NamePlayer }}
-                            }
-                            @else{
-                                {{ item.NamePlayer }}
-                            }
+                            {{ namePlayerLeague() ? (item.NamePlayerLeague || item.NamePlayer) : item.NamePlayer }}
                         </div>
                     }
                 </div>
             </div>
             @if (match().Resultado && match().Resultado.periodos) {
                 @for (periodo of match().Resultado.periodos; track $index) {
-                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">
-                        {{ periodo.visitante }}
-                    </div>
+                    <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-800 font-semibold">{{ periodo.visitante }}</div>
                 }
             } @else {
                 <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
@@ -104,46 +99,63 @@
                 <div class="w-10 flex items-center justify-center font-mono text-base text-neutral-300">—</div>
             }
             <div class="w-[45px] ml-auto border-l border-neutral-200 pl-1 flex items-center justify-center font-mono text-lg font-black text-neutral-900">
-                {{ match().Resultado.totalVisitante }}
+                {{ match().Resultado?.totalVisitante }}
             </div>
         </div>
-
     </div>
 
-    <div class="flex justify-between items-center mt-auto pt-2">
-        <span class="text-xs font-bold"
-              [ngClass]="match().Estado === 'Jugado' ? 'text-emerald-600' : 'text-neutral-500'">
-            @switch( match().Estado ) {
-                @case ("Jugado") {
-                    🟢 Jugado
-                }
-                @case ('Pendiente') {
-                    🟡 Pendiente
-                }
-                @default {
-                    @if(confirmar()){
-                        <button (click)="validateMatch()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
-                            🔵 Confirmar
-                        </button>
-                    } @else {
-                        <span class="text-blue-500 font-semibold text-red">🔵 Confirmando</span>
-                    }
-                }
-            }
-        </span>
-        @if(adminMode()) {
-            <button (click)="deleteMatch()" class="text-red-500 border-l border-red-500 hover:bg-red-600 hover:text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
-                <i class="fa-solid fa-xmark text-sm"></i> Eliminar
-            </button>
-        }
-
-        @if (puedeEditar() && match().Estado !== 'Jugado') {
-            <button (click)="openEditModal()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
-                ✏️ {{ (adminMode() || !this.match().DayTrip) ? 'Puntuar y validar' : 'Puntuar' }}
-            </button>
-        }
-
+    <div class="flex justify-between items-center mt-auto pt-2 border-t border-neutral-100/70">
         
+        @if (match().Estado === 'Jugado') {
+            <div class="flex items-center gap-2">
+            <span [ngClass]="match().ApuestaAcertada ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-rose-500 bg-rose-50 border-rose-100'" 
+                class="inline-flex items-center text-[10px] font-extrabold px-2 py-0.5 rounded-md border tracking-wide uppercase">
+                    @if(match().MiApuesta){
+                        {{ match().ApuestaAcertada ? 'Acertado' : 'Fallado' }}
+                    }
+                    @else {
+                        No apostado
+                    }
+                </span>
+            </div>
+        }
+        @if (match().Estado === 'Pendiente') {
+            <div class="inline-flex rounded-lg p-0.5 bg-neutral-100 border border-neutral-200">
+                <button (click)="toggleApuesta('Local')"
+                        [ngClass]="match().MiApuesta === 'Local' ? 'bg-white text-emerald-600 shadow-sm font-extrabold scale-105' : 'text-neutral-400 hover:text-neutral-700'"
+                        class="px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer focus:outline-none">
+                    1
+                </button>
+                <button (click)="toggleApuesta('Empate')"
+                        [ngClass]="match().MiApuesta === 'Empate' ? 'bg-white text-emerald-600 shadow-sm font-extrabold scale-105' : 'text-neutral-400 hover:text-neutral-700'"
+                        class="px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer focus:outline-none">
+                    X
+                </button>
+                <button (click)="toggleApuesta('Visitante')"
+                        [ngClass]="match().MiApuesta === 'Visitante' ? 'bg-white text-emerald-600 shadow-sm font-extrabold scale-105' : 'text-neutral-400 hover:text-neutral-700'"
+                        class="px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer focus:outline-none">
+                    2
+                </button>
+            </div>
+        }
+        <div class="flex items-center gap-1.5 ml-auto justify-end">
+            
+            @if(adminMode()) {
+                <button (click)="deleteMatch()" class="text-red-500 hover:bg-red-50 hover:text-red-600 border-none px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            }
+            @if(confirmar()){
+                <button (click)="validateMatch()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer r-2">
+                    🔵 Confirmar
+                </button>
+            }
+            @if (puedeEditar() && match().Estado !== 'Jugado') {
+                <button (click)="openEditModal()" class="bg-neutral-800 hover:bg-neutral-900 text-white border-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer">
+                    ✏️ {{ (adminMode() || !this.match().DayTrip) ? 'Puntuar y validar' : 'Puntuar' }}
+                </button>
+            }
+        </div>
     </div>
 
 </div>

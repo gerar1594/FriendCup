@@ -63,7 +63,7 @@
                                             } @else {
                                                 {{ row.NamePlayer }}
                                             }
-
+                                            {{ row.MiVotoCampeon ? '⭐' : '' }}
                                             @if (row.IsCurrentUser) {
                                                 <button 
                                                     (click)="onStartEdit()" 

@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes';
 import './tasks/cronTasks';
 import matchRoutes from './routes/matchRoutes';
 import sportRoutes from './routes/sportRoutes';
+import betsRoutes from './routes/betsRoutes';
 
 
 class Server{
@@ -40,6 +41,8 @@ class Server{
         this.app.use('/api/player', playersRoutes);
         this.app.use('/api/league', leaguesRoutes);
         this.app.use('/api/sport', sportRoutes);
+        this.app.use('/api/bets', betsRoutes);
+
 
     }
 

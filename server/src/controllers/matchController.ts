@@ -369,12 +369,15 @@ class MatchController {
                                             JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
                                             LEFT JOIN leagueplayer lp_vis ON pl_vis.IDPlayer = lp_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
                                             WHERE mp_visit.IDMatch = m.IDMatch
-                                            AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames
+                                            AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
+                                            mb.PredictedBando AS MiApuesta,
+                                            mb.PredictedScore AS MiResultadoApostado
 
                                         FROM matches m
                                         INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
                                         INNER JOIN leagues l ON m.IDLeague = l.IDLeague
                                         INNER JOIN sports s ON l.IDSport = s.IDSport
+                                        LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
                                         WHERE mp.IDPlayer = ?
                                         ORDER BY m.DayTrip ASC, m.Estado DESC;`
 
@@ -382,7 +385,7 @@ class MatchController {
             console.log(pool.format(querySql, [idPlayer]));
             console.log("=====================================================");*/
 
-            const [userMatches]: any = await pool.query(querySql,[idPlayer]);
+            const [userMatches]: any = await pool.query(querySql,[idPlayer, idPlayer]);
             
             // IMPORTANTE: MySQL devuelve las columnas de tipo JSON ya parseadas como objetos JS de forma nativa.
 
@@ -439,12 +442,23 @@ class MatchController {
                 WHERE mp_visit.IDMatch = m.IDMatch
                 AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
 
-                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando
+                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando,
+                mb.PredictedBando AS MiApuesta,
+                mb.PredictedScore AS MiResultadoApostado,
+
+                CASE 
+                    WHEN m.Estado <> 'Jugado' OR mb.PredictedBando IS NULL THEN NULL
+                    WHEN m.Winner = 1 AND mb.PredictedBando = 'Local' THEN 1
+                    WHEN m.Winner = 2 AND mb.PredictedBando = 'Visitante' THEN 1
+                    WHEN m.Winner = 3 AND mb.PredictedBando = 'Empate' THEN 1
+                    ELSE 0
+                END AS ApuestaAcertada
 
             FROM matches m
             INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
             INNER JOIN leagues l ON m.IDLeague = l.IDLeague
             INNER JOIN sports s ON l.IDSport = s.IDSport
+            LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
             WHERE m.IDLeague = ? AND m.DayTrip IS NOT NULL
             ORDER BY m.DayTrip ASC, m.Estado DESC;`;
 
@@ -454,7 +468,7 @@ class MatchController {
         console.log("=====================================================");*/
 
         // 3. Pasamos la constante formateada directamente a la base de datos
-        const [matches]: any = await pool.query(querySql, [currentUserId, idleague]);
+        const [matches]: any = await pool.query(querySql, [currentUserId, currentUserId, idleague]);
         
         const formattedMatches = matches.map((match: any) => ({
             ...match,
@@ -507,12 +521,23 @@ class MatchController {
                 WHERE mp_visit.IDMatch = m.IDMatch
                 AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
 
-                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando
+                mb.PredictedBando AS MiApuesta,
+                mb.PredictedScore AS MiResultadoApostado,
+
+                (SELECT bando FROM matchplayer mp2 WHERE mp2.IDMatch = m.IDMatch AND mp2.IDPlayer = ?) AS bando,
+                CASE 
+                    WHEN m.Estado <> 'Jugado' OR mb.PredictedBando IS NULL THEN NULL
+                    WHEN m.Winner = 1 AND mb.PredictedBando = 'Local' THEN 1
+                    WHEN m.Winner = 2 AND mb.PredictedBando = 'Visitante' THEN 1
+                    WHEN m.Winner = 3 AND mb.PredictedBando = 'Empate' THEN 1
+                    ELSE 0
+                END AS ApuestaAcertada
 
             FROM matches m
             INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
             INNER JOIN leagues l ON m.IDLeague = l.IDLeague
             INNER JOIN sports s ON l.IDSport = s.IDSport
+            LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
             WHERE m.IDLeague = ? AND m.DayTrip IS NULL
             ORDER BY m.DayTrip ASC, m.Estado DESC;`;
 
@@ -522,7 +547,7 @@ class MatchController {
         console.log("=====================================================");*/
 
         // 3. Pasamos la constante formateada directamente a la base de datos
-        const [matches]: any = await pool.query(querySql, [currentUserId, idleague]);
+        const [matches]: any = await pool.query(querySql, [currentUserId, currentUserId, idleague]);
         
         const formattedMatches = matches.map((match: any) => ({
             ...match,
@@ -678,8 +703,9 @@ class MatchController {
                     `SELECT m.IDLeague, m.Winner, m.Estado, m.DayTrip,
                         (SELECT Bando FROM matchplayer WHERE IDMatch = m.IDMatch AND IDPlayer = ?) AS BandoEditor,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
-                        (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs
-                        l.Configuration
+                        (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs,
+                        l.Configuration,
+                        l.IDAdmin
                     FROM matches m
                     JOIN leagues l ON m.IDLeague = l.IDLeague
                     JOIN sports s ON l.IDSport = s.IDSport
@@ -692,9 +718,10 @@ class MatchController {
                 }
 
                 const partido = matchData[0];
-
+                console.log(partido)
                 // Validación de seguridad: el usuario debe participar en el partido
-                if (!partido.BandoEditor || partido.IDAdmin != currentUserId) {
+                if (!partido.BandoEditor && partido.IDAdmin != currentUserId) {
+
                     await connection.rollback();
                     return res.status(403).json({ message: "No tienes permiso para confirmar este partido porque no participas en él." });
                 }
@@ -724,21 +751,13 @@ class MatchController {
                     return res.status(400).json({ message: "Falta la confirmación del bando contrario antes de consolidar el partido." });
                 }
 
-                 const [league]: any = await pool.query(
-                    `SELECT IDAdmin,Configuration FROM leagues l
-                    JOIN matches m ON l.IDLeague = m.IDLeague
-                    WHERE m.IDMatch = ? AND l.IDAdmin = ?`,
-                    [idMatch, currentUserId]
-                );
-
                 // DENTRO DE TU CIERRE EN 'validateMatchResult':
-                const configuration = JSON.parse(league[0].Configuration)
 
-                if (debeCerrarYAsignar && (matchData.DayTrip == null && configuration.sumarJornadasExtra)) {
+                const configuration = JSON.parse(matchData[0].Configuration)
+                if (debeCerrarYAsignar && (partido.DayTrip == null && configuration.sumarJornadasExtra)) {
                     // 🔥 Reutilizamos la función común de asignación de puntos
                     await asignarPuntosLiga(connection, partido);
                 }
-
                 // ==========================================================
                 // 4. CAMBIO DE ESTADO DEL PARTIDO EN 'matches'
                 // ==========================================================
@@ -762,6 +781,7 @@ class MatchController {
                 connection.release();
             }
         } catch (error: any) {
+            console.log(error)
             return res.status(500).json({ message: "Error al actualizar las estadísticas de la liga: " + error.message });
         }
     }

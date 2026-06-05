@@ -159,13 +159,47 @@
         <main class="bg-white p-2 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] min-h-[350px]">
             
             @if (activeTab() === 'clasificacion') {
-                <div class="animate-in fade-in duration-200">
+                <div class="animate-in fade-in duration-200 flex flex-col gap-4">
+                    
+                    @if (leagueData().Estado !== 'Finalizada') {
+                        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl mt-0.5">👑</span>
+                                <div>
+                                    <h4 class="m-0 text-amber-900 font-bold text-sm">Porra del Campeón Final</h4>
+                                    <p class="m-0 text-amber-700 text-xs mt-0.5">¡Apuesta por quién ganará el torneo antes de que termine para llevarte +10 puntos!</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 min-w-[220px]">
+                                <select 
+                                    [value]="miCandidatoElegidoId()" 
+                                    (change)="onPredecirCampeon($event)"
+                                    class="w-full p-2 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-neutral-800 outline-none cursor-pointer focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors shadow-xs"
+                                >
+                                    <option value="">-- Elige tu Campeón --</option>
+                                    @for (candidate of classification(); track candidate.IDPlayer) {
+                                        <option [value]="candidate.IDPlayer">
+                                            @if(candidate.NamePlayerLeague) {
+                                                {{ candidate.NamePlayerLeague }}
+                                            } @else {
+                                                {{ candidate.NamePlayer }}
+                                            }
+                                            {{ candidate.MiVotoCampeon ? '⭐' : '' }}
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    }
+
                     <app-clasification 
                         [classification]="classification()" 
                         [idLeague]="idLeague()" 
                         (onLeagueDataRefresh)="this.loadLeagueData()">
                     </app-clasification>
                 </div>
+                
             }
 
             @if (activeTab() === 'jornadas') {

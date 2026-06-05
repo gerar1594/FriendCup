@@ -4,6 +4,7 @@ import { ModifyMatchDialog } from "../modify-match-dialog/modify-match-dialog";
 import { MatchesService } from '../../../services/matches/matches-service.service';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../../services/notification/notification.service';
+import { BetsService } from '../../../services/bets/bets-service.service';
 
 @Component({
     selector: 'app-match-card',
@@ -14,6 +15,8 @@ import { NotificationService } from '../../../services/notification/notification
 export class MatchCard {
 
     private matchesService = inject(MatchesService);
+    private betsService = inject(BetsService);
+
     private notificationService = inject(NotificationService);
     
     
@@ -52,7 +55,6 @@ export class MatchCard {
         if(this.adminMode()) {
             return true; // Si eres admin, puedes confirmar cualquier partido
         }
-
         if (match.Estado == 'Confirmado Visitante' && this.match().bando === 'Local') {
             return true;
         }
@@ -136,11 +138,33 @@ export class MatchCard {
         // Aquí iría la lógica para eliminar el partido, probablemente llamando a un método en MatchesService
         // Ejemplo:
         this.matchesService.deleteMatch(this.match().IDMatch).subscribe({
-             next: (res) => {
-                this.notificationService.show(res.message, 'success');
-                this.loadMatches.emit();
-             },
-             error: (err) => this.notificationService.show(err.message, 'error')
-         });
+            next: (res) => {
+            this.notificationService.show(res.message, 'success');
+            this.loadMatches.emit();
+            },
+            error: (err) => this.notificationService.show(err.message, 'error')
+        });
+    }
+    toggleApuesta(bando: 'Local' | 'Visitante' | 'Empate') {
+        const partidoActual = this.match();
+
+        // Si hace clic en la que ya estaba seleccionada, la borramos (desmarcar), si no, la guardamos
+        const nuevaApuesta = partidoActual.MiApuesta === bando ? null : bando;
+
+        // 1. Actualización optimista de la UI mutando el Signal local
+        /*this.match().set({
+            ...partidoActual,
+            MiApuesta: nuevaApuesta
+        });*/
+        this.match().MiApuesta = nuevaApuesta;
+
+        // 2. Sincronizamos con la base de datos a través de tu servicio
+        this.betsService.saveMatchBet({idMatch: partidoActual.IDMatch, predictedBando: nuevaApuesta}).subscribe({
+            error: (err) => {
+                console.error("Error al guardar apuesta, revirtiendo...", err);
+                // Si el servidor falla de forma imprevista, restauramos el estado anterior
+                this.match().set(partidoActual);
+            }
+        });
     }
 }

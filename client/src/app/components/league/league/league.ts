@@ -10,6 +10,7 @@ import { NotificationService } from '../../../services/notification/notification
 import { Clasification } from "../clasification/clasification";
 import { AddMatchModal } from "../../match/add-match-modal/add-match-modal";
 import { PlayerService } from '../../../services/players/player-service.service';
+import { BetsService } from '../../../services/bets/bets-service.service';
 
 type LeagueTab = 'clasificacion' | 'jornadas' | 'extras';
 @Component({
@@ -26,6 +27,7 @@ export class League implements OnInit {
     private leaguesService = inject(LeaguesService);
     private matchService = inject(MatchesService);
     private authService = inject(AuthService);
+    private betsService = inject(BetsService);
     private notifService = inject(NotificationService);
     // Signals para reactividad limpia
     idLeague = signal<number>(0);
@@ -38,6 +40,7 @@ export class League implements OnInit {
     protected matches = signal<any[]>([]);
     protected matchesExtra = signal<any[]>([]);
     adminMode = signal<boolean>(false); 
+    public miCandidatoElegidoId = signal<string>('');
 
     // Agrega el Signal dentro de tu clase
     activeTab = signal<LeagueTab>('clasificacion');
@@ -318,6 +321,35 @@ export class League implements OnInit {
                 }
             });
         }
+    }
+
+    /**
+     * Se ejecuta al cambiar el selector para guardar el voto en la base de datos
+     */
+    onPredecirCampeon(event: Event) {
+        const selectElement = event.target as HTMLSelectElement;
+        const selectedPlayerId = selectElement.value;
+
+        if (!selectedPlayerId) return;
+
+        // Actualización optimista de la interfaz
+        this.miCandidatoElegidoId.set(selectedPlayerId);
+
+        // Guardar en el servidor
+        this.betsService.saveLeagueBet({idLeague: this.idLeague(), predictedWinnerId: selectedPlayerId}).subscribe({
+            next: (res) => {
+                // Recargamos candidatos para que se actualice la estrella '⭐' al lado del nombre
+                this.loadLeagueData();
+                this.notifService.show(res.message, 'success');
+
+            },
+            error: (err) => {
+                console.error('Error al guardar la porra de liga', err);
+                this.notifService.show(err.message, 'error');
+
+                // Si falla, podrías revertir al estado anterior o limpiar
+            }
+        })
     }
 
 }
