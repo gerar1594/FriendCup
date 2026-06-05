@@ -255,7 +255,8 @@ export class League implements OnInit {
                 next: (res) => {
                     console.log(res.message || "Favorito sincronizado en el servidor");
                     this.notifService.show(res.message, 'success');
-                    this.loadLeagueData()
+                    this.loadLeagueData();
+                    this.leaguesService.triggerRefresh();
                 },
                 error: (err) => {
                     console.error("Error al guardar favorito, revirtiendo estado...", err);
@@ -266,7 +267,8 @@ export class League implements OnInit {
                 next: (res) => {
                     console.log(res.message || "Favorito sincronizado en el servidor");
                     this.notifService.show(res.message, 'success');
-                    this.loadLeagueData()
+                    this.loadLeagueData();
+                    this.leaguesService.triggerRefresh();
                 },
                 error: (err) => {
                     console.error("Error al guardar favorito, revirtiendo estado...", err);

@@ -777,7 +777,7 @@ class MatchController {
         const [isAdmin]: any = await pool.query(
             `SELECT IDAdmin,Configuration FROM leagues l
             JOIN matches m ON l.IDLeague = m.IDLeague
-            WHERE m.IDMatch = ? AND l.IDAdmin = ?`,
+            WHERE m.IDMatch = ? AND (l.IDAdmin = ? OR m.DayTrip IS NULL)`,
             [idMatch, currentUserId]
         );
         if (isAdmin.length === 0) {
@@ -794,7 +794,7 @@ class MatchController {
                 // 1. VERIFICACIÓN ESTRICTA DE PERMISOS DE ADMINISTRADOR
                 // ==========================================================
                 const [matchConfig]: any = await connection.query(
-                    `SELECT s.ResultadoFormat, m.IDLeague, m.Estado, l.IDAdmin,
+                    `SELECT s.ResultadoFormat, m.IDLeague, m.Estado, l.IDAdmin, m.DayTrip,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs
                     FROM matches m
@@ -811,7 +811,7 @@ class MatchController {
                 const partido = matchConfig[0];
 
                 // 🛑 Seguridad letal: Si el que ejecuta no coincide con el IDAdmin de la liga, rebotamos
-                if (partido.IDAdmin != currentUserId) {
+                if (partido.IDAdmin != currentUserId && partido.DayTrip != null) {
                     await connection.rollback();
                     return res.status(403).json({ message: "Acceso denegado. No eres el administrador de esta liga." });
                 }
@@ -1093,9 +1093,9 @@ class MatchController {
 
                         // Insertar la relación en matchplayer
 
-                        console.log(pool.format(`INSERT IGNORE INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)`, [idMatch, finalPlayerId, bandoName]))
+                        console.log(pool.format(`INSERT INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)`, [idMatch, finalPlayerId, bandoName]))
                         await connection.query(
-                            "INSERT IGNORE INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)",
+                            "INSERT INTO matchplayer (IDMatch, IDPlayer, Bando) VALUES (?, ?, ?)",
                             [idMatch, finalPlayerId, bandoName]
                         );
                     }
