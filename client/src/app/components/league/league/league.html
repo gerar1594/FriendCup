@@ -1,7 +1,7 @@
 @if (leagueData()) {
-    <div class="w-full max-w-[1000px] my-8 mx-auto px-4 font-sans">
+    <div class="w-full max-w-[1000px] my-2 mx-auto px-4 font-sans">
 
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] mb-8 gap-6 flex-wrap">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] mb-2 gap-6 flex-wrap">
             <div class="flex flex-col items-start gap-2 w-full md:w-auto">
                 <div class="flex items-center">
                     <h1 class="m-0 text-neutral-800 text-3xl font-bold tracking-tight">{{ leagueData().NameLeague }}</h1>
@@ -134,7 +134,7 @@
             }
         </header>
 
-        <div class="flex border-b border-neutral-200 mb-6 gap-2">
+        <div class="flex border-b border-neutral-200 mb-2 gap-2">
             <button 
                 (click)="activeTab.set('clasificacion')"
                 [ngClass]="activeTab() === 'clasificacion' ? 'border-blue-500 text-blue-600 font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'"
@@ -156,7 +156,7 @@
 
         </div>
 
-        <main class="bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] min-h-[350px]">
+        <main class="bg-white p-2 md:p-8 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] min-h-[350px]">
             
             @if (activeTab() === 'clasificacion') {
                 <div class="animate-in fade-in duration-200">
