@@ -9,6 +9,7 @@ import { environment } from '../../../environments/environment';
     providedIn: 'root',
 })
 export class LeaguesService {
+
     
     
     private http = inject(HttpClient);
@@ -107,5 +108,19 @@ export class LeaguesService {
 
     updateNamePlayerLeague(idLeague: number, newName: string): Observable<any> {
         return this.http.post(`${this.API_URL}/update-name-player-league`, { idLeague, newName });
+    }
+
+    addLike(IDLeague: any): Observable<any>  {
+        return this.http.put(`${this.API_URL}/add-like/${IDLeague}`,{});
+    }
+    
+    deleteLike(IDLeague: any): Observable<any>  {
+        return this.http.delete(`${this.API_URL}/delete-like/${IDLeague}`);
+    }
+
+    searchLeagues(term: string): Observable<any> {
+        return this.http.get(`${this.API_URL}/search`, {
+            params: { search: term }
+        });
     }
 }

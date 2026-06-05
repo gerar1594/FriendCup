@@ -246,6 +246,35 @@ export class League implements OnInit {
         });*/
     }
 
+    toggleFavorite(){
+        // 1. Cambiamos el estado visual inmediatamente en el cliente (0 -> 1 o 1 -> 0)
+        const nuevoEstado = this.leagueData().IsFavorite ? 0 : 1;
+        if(nuevoEstado)
+            // 2. Enviamos la orden al servidor para sincronizar la tabla 'likeleagueplayer'
+            this.leaguesService.addLike(this.leagueData().IDLeague).subscribe({
+                next: (res) => {
+                    console.log(res.message || "Favorito sincronizado en el servidor");
+                    this.notifService.show(res.message, 'success');
+                    this.loadLeagueData()
+                },
+                error: (err) => {
+                    console.error("Error al guardar favorito, revirtiendo estado...", err);
+                }
+            });
+        else{
+            this.leaguesService.deleteLike(this.leagueData().IDLeague).subscribe({
+                next: (res) => {
+                    console.log(res.message || "Favorito sincronizado en el servidor");
+                    this.notifService.show(res.message, 'success');
+                    this.loadLeagueData()
+                },
+                error: (err) => {
+                    console.error("Error al guardar favorito, revirtiendo estado...", err);
+                }
+            });
+        }
+    }
+
     onChangeSumarExtra(event: Event) {
         const checkbox = event.target as HTMLInputElement;
         const isChecked = checkbox.checked;

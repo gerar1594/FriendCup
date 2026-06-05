@@ -10,4 +10,7 @@
 - Nombre particular para cada liga ✔️
 - Añadir partidos fuera de jornadas ✔️
 - Eliminar jornada y partido ✔️
+- Buscador liga ✔️
+- Likely liga ✔️
+- Apuestas
 - Editar perfil

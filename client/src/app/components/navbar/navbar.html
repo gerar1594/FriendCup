@@ -8,6 +8,21 @@
             </a>
         </div>
 
+        <div class="hidden md:block flex-1 max-w-xs mx-6">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </span>
+                <input 
+                    type="text" 
+                    placeholder="Buscar liga..." 
+                    (keyup.enter)="onSearchLeague($event)"
+                    class="w-full pl-9 pr-4 py-1.5 bg-slate-700/50 text-sm text-slate-200 placeholder-slate-400 border border-slate-600 rounded-lg focus:outline-none focus:bg-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" />
+            </div>
+        </div>
+
         <div class="flex md:hidden">
             <button 
             (click)="toggleMobileMenu()" 
@@ -74,6 +89,22 @@
         [class]="isMobileMenuOpen() ? 'block md:hidden border-t border-slate-700 bg-slate-800' : 'hidden md:hidden'"
     >
         <div class="px-2 pt-2 pb-4 space-y-2">
+        
+        <div class="px-3 py-2">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </span>
+                <input 
+                    type="text" 
+                    placeholder="Buscar liga..." 
+                    (keyup.enter)="onSearchLeague($event); toggleMobileMenu()"
+                    class="w-full pl-9 pr-4 py-2 bg-slate-700/50 text-sm text-slate-200 placeholder-slate-400 border border-slate-600 rounded-lg focus:outline-none focus:border-emerald-500 transition-all" />
+            </div>
+        </div>
+
         @if (authService.isLoggedIn()) {
             
             <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">

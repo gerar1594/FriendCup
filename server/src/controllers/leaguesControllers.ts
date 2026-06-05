@@ -45,14 +45,33 @@ class LeaguesController{
         const { idplayer } = req.params;
 
         const [leagues] = await pool.query(
-            `SELECT L.*, S.*
+            `SELECT 
+                L.*, 
+                S.*,
+                EXISTS(
+                    SELECT 1 
+                    FROM likeleagueplayer LLP 
+                    WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                ) AS isFavorite
             FROM leagues L
-                JOIN leagueplayer LP ON L.IDLeague = LP.IDLeague
-                JOIN sports S ON  L.IDSport = S.IDSport
-                WHERE LP.IDPlayer = ? OR L.IDAdmin = ?
-                GROUP BY L.IDLeague`,
-            [idplayer, idplayer]
+            JOIN sports S ON L.IDSport = S.IDSport
+            WHERE 
+                L.IDAdmin = ?                               -- 1. Eres el creador/admin
+                OR EXISTS (
+                    SELECT 1 
+                    FROM leagueplayer LP 
+                    WHERE LP.IDLeague = L.IDLeague AND LP.IDPlayer = ?
+                )                                           -- 2. Eres jugador inscrito
+                OR EXISTS (
+                    SELECT 1 
+                    FROM likeleagueplayer LLP 
+                    WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                )                                           -- 3. 🌟 NUEVO: La tienes en favoritos
+            GROUP BY L.IDLeague
+            ORDER BY L.NameLeague ASC;`,
+            [idplayer, idplayer, idplayer, idplayer]
         );
+
 
         if (leagues) {
             res.json(leagues);
@@ -62,6 +81,9 @@ class LeaguesController{
         }
     }
 
+    public async getLeaguesByLikeUser(req: Request, res: Response): Promise<void> {
+    
+    }
     public async get(req: Request, res: Response): Promise<any>{
 
 
@@ -70,15 +92,30 @@ class LeaguesController{
         const currentUserId = req.headers['x-user-id'];
 
 
-        const [league] : any = await pool.query(`SELECT L.*, S.*  FROM leagues L, sports S WHERE L.IDSport = S.IDSport AND L.IDLeague = ?`,[idleague]);
+        const [league] : any = await pool.query(`SELECT
+                L.*,
+                S.*,
+                EXISTS(
+                    SELECT 1
+                    FROM leagueplayer LP
+                    WHERE LP.IDLeague = L.IDLeague AND LP.IDPlayer = ?
+                ) AS IsCurrentUser,
+                -- 🎯 Comprobamos si el usuario actual (tú) tiene esta liga en favoritos
+                EXISTS(
+                    SELECT 1
+                    FROM likeleagueplayer LLP
+                    WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                ) AS IsFavorite
+            FROM leagues L
+            INNER JOIN sports S ON L.IDSport = S.IDSport
+            WHERE L.IDLeague = ?;`,[currentUserId, currentUserId, idleague]);
         const [classification] = await pool.query(
-            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws,
-                IF(LP.IDPlayer = ?, 1, 0) AS IsCurrentUser
+            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws
             FROM leagueplayer LP
                 JOIN players P ON LP.IDPlayer = P.IDPlayer
                 WHERE LP.IDLeague = ?
             ORDER BY LP.Points DESC, LP.Matches ASC`,
-            [currentUserId, idleague]
+            [ idleague]
         );
         // 2. Controlamos si 'Configuration' viene como String y lo parseamos de forma segura
         let leagueData = {...league[0]};
@@ -94,6 +131,51 @@ class LeaguesController{
             league: leagueData,
             classification: classification,
         });
+    }
+    
+    public async searchLeagues(req: Request, res: Response): Promise<any> {
+        const searchQuery = req.query.search as string;
+        const currentUserId = req.headers['x-user-id']; // ID del usuario para calcular sus favoritos
+
+        // Si no se envía texto, podemos devolver un array vacío o las últimas ligas creadas
+
+        if (!searchQuery || searchQuery.trim() === '') {
+            return res.status(200).json([]);
+        }
+
+        try {
+            // Limpiamos espacios eibarreses y preparamos el comodín para el LIKE (%termino%)
+            const cleanTerm = `%${searchQuery.trim()}%`;
+
+            const query = `
+                SELECT
+                    L.*,
+                    S.NameSport,
+                    -- 🎯 Comprobamos si el usuario actual tiene esta liga en favoritos
+                    EXISTS(
+                        SELECT 1
+                        FROM likeleagueplayer LLP
+                        WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                    ) AS IsFavorite
+                FROM leagues L
+                INNER JOIN sports S ON L.IDSport = S.IDSport
+                WHERE L.NameLeague LIKE ?
+                ORDER BY L.IDLeague DESC
+                LIMIT 20; -- Limitamos a 20 para no saturar la red si la búsqueda es muy genérica
+            `;
+
+            // Ejecutamos pasándole el ID del usuario (para el favorito) y el término (para el LIKE)
+            const [leagues]: any = await pool.query(query, [currentUserId || null, cleanTerm]);
+
+            // Retornamos el array de resultados coincidentes
+            return res.status(200).json(leagues);
+
+        } catch (error: any) {
+            console.error("Error al buscar ligas:", error.message);
+            return res.status(500).json({
+                message: "Error interno del servidor al procesar la búsqueda: " + error.message 
+            });
+        }
     }
 
     public async create(req : Request, res : Response): Promise<void> {
@@ -299,6 +381,37 @@ class LeaguesController{
         res.json({message:" El jugador fue actualizado"});
 
 
+    }
+
+    public async addLike (req: Request, res: Response): Promise<void>{
+        const { idleague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+        console.log(idleague, currentUserId)
+        try{
+            const [matchResult]: any = await connection.query(
+                    `INSERT INTO likeleagueplayer (IDLeague, IDPlayer) VALUES (?, ?)`,
+                    [idleague, currentUserId]
+                );
+            connection.commit();
+            res.json({message:" La liga ha sido añadido a tus favoritos"});
+
+        } catch (transactionError: any) {
+            await connection.rollback();
+            throw transactionError;
+        } finally {
+            connection.release();
+        }
+    }
+
+    public async deleteLike (req: Request, res: Response): Promise<void>{
+        const { idleague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+
+        await pool.query("DELETE FROM likeleagueplayer WHERE IDLeague = ? AND IDPlayer = ?", 
+            [idleague, currentUserId]);
+        res.json({message:"La liga ha sido eliminada de tus favoritos"});
     }
 
     public async checkLeagueAccess (req: Request, res: Response) {
