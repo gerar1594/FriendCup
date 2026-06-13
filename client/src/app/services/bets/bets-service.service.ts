@@ -17,4 +17,10 @@ export class BetsService {
     saveLeagueBet(payload: {idLeague: any, predictedWinnerId: any}) : Observable<any>  {
         return this.http.post(`${this.API_URL}/save-league`, payload);
     }
+    saveOrderLeagueBet(payload: {idLeague: any, prediction: number[]}) : Observable<any>  {
+        return this.http.post(`${this.API_URL}/save-order-league`, payload);
+    }
+    getOrderLeagueBet(idLeague: any) : Observable<any>  {
+        return this.http.get(`${this.API_URL}/${idLeague}/bet-order-league`);
+    }
 }

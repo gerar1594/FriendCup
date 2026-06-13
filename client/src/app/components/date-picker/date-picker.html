@@ -1,0 +1,64 @@
+@if (isOpen()) {
+    <div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl border border-neutral-100 p-5 w-full max-w-sm mx-4 transform scale-100 animate-in zoom-in-95 duration-200 select-none">
+            
+            <div class="flex items-center justify-between mb-4">
+                <button type="button" (click)="cambiarMes(-1)" class="p-1.5 rounded-lg hover:bg-neutral-100 border-none bg-transparent cursor-pointer transition-colors text-neutral-600 font-bold">‹</button>
+                <h3 class="text-xs font-bold text-neutral-800 m-0 uppercase tracking-wide">{{ mesAnioTexto() }}</h3>
+                <button type="button" (click)="cambiarMes(1)" class="p-1.5 rounded-lg hover:bg-neutral-100 border-none bg-transparent cursor-pointer transition-colors text-neutral-600 font-bold">›</button>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                @for (diaLabel of diasSemana; track $index) {
+                    <span class="text-[10px] font-bold text-neutral-400 uppercase">{{ diaLabel }}</span>
+                }
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 text-center mb-4">
+                @for (dia of diasMes; track $index) {
+                    @if (dia === null) {
+                        <div class="w-8 h-8"></div>
+                    } @else {
+                        <button 
+                            type="button"
+                            (click)="seleccionarDia(dia)"
+                            [class.bg-emerald-500]="selectedDay() === dia"
+                            [class.bg-emerald-100]="selectedDay() === dia"
+                            [class.hover:bg-neutral-100]="selectedDay() !== dia"
+                            [class.text-neutral-800]="selectedDay() !== dia"
+                            class="w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-lg border-none  cursor-pointer transition-all mx-auto"
+                        >
+                            {{ dia }}
+                        </button>
+                    }
+                }
+            </div>
+
+            <div class="border-t border-neutral-100 my-3"></div>
+
+            <div class="flex items-center justify-between gap-4 mb-4 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/60">
+                <span class="text-[11px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">🕒 Hora de juego:</span>
+                <input 
+                    type="time" 
+                    [(ngModel)]="selectedTime"
+                    class="p-1.5 border border-neutral-300 rounded-lg text-xs font-bold text-neutral-800 outline-none focus:border-emerald-500 bg-white"
+                />
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" (click)="isOpen.set(false)" class="px-3.5 py-2 text-xs font-bold text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded-lg border-none cursor-pointer transition-colors">
+                    Cancelar
+                </button>
+                <button 
+                    type="button" 
+                    (click)="confirmar()" 
+                    [disabled]="!selectedDay()" 
+                    class="px-3.5 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg border-none cursor-pointer transition-colors shadow-sm disabled:bg-neutral-200 disabled:text-neutral-400 disabled:cursor-not-allowed"
+                >
+                    Confirmar Partido
+                </button>
+            </div>
+
+        </div>
+    </div>
+}

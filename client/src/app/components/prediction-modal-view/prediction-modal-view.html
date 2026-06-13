@@ -1,0 +1,74 @@
+@if (isOpen()) {
+    <div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl border border-neutral-100 p-6 w-full max-w-md mx-4 max-h-[85vh] flex flex-col transform scale-100 animate-in zoom-in-95 duration-200">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-neutral-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-base font-bold text-neutral-800 m-0 flex items-center gap-2">
+                        🔮 Tu Pronóstico Final
+                    </h3>
+                </div>
+                <button (click)="isOpen.set(false)" class="text-neutral-400 hover:text-neutral-600 bg-transparent border-none cursor-pointer p-1 rounded-lg text-sm">✕</button>
+            </div>
+
+            <div class="grid grid-flow-row grid-cols-[max-content_1fr_max-content_1fr] overflow-y-auto py-4 pr-1  gap-2 
+                        [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-neutral-50 
+                        [&::-webkit-scrollbar-thumb]:bg-neutral-200 [&::-webkit-scrollbar-thumb]:rounded-md">
+                <div></div>
+                <div class="flex items-center gap-3 p-3 transition-all select-none group justify-center">
+                    Prediccion
+                </div>
+                <div></div>
+                <div class="flex items-center gap-3 p-3 transition-all select-none group justify-center">
+                    Clasificacion
+                </div>
+
+                @for (player of betList(); track player.IDPlayer; let idx = $index) {
+                    <div class="flex items-center gap-3 bg-neutral-50 p-3 transition-all select-none group">
+                        <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
+                            [ngClass]="{
+                            'bg-amber-100 text-amber-700': idx === 0,
+                            'bg-neutral-200 text-neutral-700': idx === 1,
+                            'bg-orange-100 text-orange-700': idx === 2,
+                            'bg-neutral-200/50 text-neutral-500': idx > 2
+                        }">
+                        {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1 }}
+                    </span>
+                    </div>
+                    <div 
+                        class="flex items-center gap-3 border border-neutral-200 p-3 rounded-xl transition-all select-none group"
+                        [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'bg-green-100' : 'bg-red-200'"
+                    >
+
+                        <span class="text-xs font-bold text-neutral-700 flex-1 truncate">
+                            {{ player.NamePlayerLeague || player.NamePlayer }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 transition-all select-none group justify-center">
+                        <i class="fa-solid fa-right-long"
+                            [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'text-green-100' : 'text-red-200'"
+
+                        ></i>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 border border-neutral-200 p-3 rounded-xl transition-all select-none group"
+                        [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'bg-green-100' : 'bg-red-200'"
+
+                    >
+
+                        <span class="text-xs font-bold text-neutral-700 flex-1 truncate">
+                            {{ classification()[idx].NamePlayerLeague || classification()[idx].NamePlayer }}
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-neutral-100 flex-shrink-0">
+                <button type="button" (click)="isOpen.set(false)" class="px-3.5 py-2 text-xs font-bold text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded-lg border-none cursor-pointer transition-colors">
+                    Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+}

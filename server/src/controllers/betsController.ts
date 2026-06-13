@@ -141,6 +141,123 @@ class BetsController {
         }
     }
 
+
+    public async saveOrderLeagueBet(req: Request, res: Response): Promise<any> {
+        // 'prediction' es el array ordenado de objetos o IDs que viene del Drag & Drop
+        const { idLeague,prediction } = req.body; 
+        const currentUserId = req.headers['x-user-id'];
+        if (!currentUserId) {
+            return res.status(401).json({ message: 'Usuario no autenticado.' });
+        }
+        console.log(prediction)
+
+        // 🛡️ Validación básica
+        if (!idLeague || !currentUserId || !Array.isArray(prediction) || prediction.length === 0) {
+            return res.status(400).json({ 
+                message: "Faltan datos obligatorios o el formato de la porra es inválido."
+            });
+        }
+
+        // Convertimos el array de la predicción en un String separado por comas para 'PredictOrder'
+        // Ej: [1, 62, 14] -> "1,62,14"
+        const predictOrderString = prediction.map((p: any) => p.IDPlayer );
+        console.log(predictOrderString)
+        // El ganador definitivo (🥇) es el primer elemento del array reordenado
+        const predictedWinnerId = typeof prediction[0] === 'object' ? prediction[0].IDPlayer : prediction[0];
+
+        try {
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            try {
+                // 1. Comprobamos si la liga sigue "Abierta". No se deberían permitir porras si ya está "En Curso" o "Finalizada"
+                const [leagueRows]: any = await connection.query(
+                    "SELECT Estado FROM leagues WHERE IDLeague = ?",
+                    [idLeague]
+                );
+
+                if (leagueRows.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "La liga especificada no existe." });
+                }
+
+                if (leagueRows[0].Estado !== 'Abierta') {
+                    await connection.rollback();
+                    return res.status(400).json({ 
+                        message: "La competición ya ha comenzado o finalizado. El plazo de la porra está cerrado." 
+                    });
+                }
+
+                // 2. Verificamos si este usuario ya tiene un registro de apuesta previo en esta liga
+                const [existingBet]: any = await connection.query(
+                    "SELECT IDLeagueBet FROM league_bet WHERE IDLeague = ? AND IDPlayer = ?",
+                    [idLeague, currentUserId]
+                );
+
+                if (existingBet.length > 0) {
+                    // 🔄 Si ya existe, ACTUALIZAMOS su predicción actual
+                    await connection.query(
+                        `UPDATE league_bet
+                        SET  PredictOrder = ?, CreatedAt = NOW() 
+                        WHERE IDLeague = ? AND IDPlayer = ?`,
+                        [JSON.stringify(predictOrderString), idLeague, currentUserId]
+                    );
+                } else {
+                    // ➕ Si es la primera vez que vota, INSERTAMOS la nueva fila
+                    await connection.query(
+                        `INSERT INTO league_bet (IDLeague, IDPlayer, PredictOrder, CreatedAt) 
+                        VALUES (?, ?, ?, NOW())`,
+                        [idLeague, currentUserId, JSON.stringify(predictOrderString)]
+                    );
+                }
+
+                await connection.commit();
+
+                return res.status(200).json({ 
+                    message: "¡Porra guardada con éxito! Suerte con el pronóstico.",
+                    orderSaved: predictOrderString
+                });
+
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+
+        } catch (error: any) {
+            console.error("Error al procesar la porra de la liga:", error);
+            return res.status(500).json({ 
+                message: "Error interno del servidor al registrar tu predicción." 
+            });
+        }
+    }
+
+    public async getOrderLeagueBet(req: Request, res: Response): Promise<any> {
+        const { idLeague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+
+        if (!currentUserId) {
+            return res.status(401).json({ message: 'Usuario no autenticado.' });
+        }
+
+        const [bet] : any = await pool.query(
+            `SELECT *
+            FROM league_bet
+            WHERE IDLeague = ? AND IDPlayer = ?`,
+            [idLeague, currentUserId]
+        );
+        let betFormated = bet[0];
+        if (betFormated) {
+            if(betFormated.PredictOrder){
+                betFormated.PredictOrder = JSON.parse(betFormated.PredictOrder);
+            }
+            res.json(betFormated);
+        }
+        else {
+            res.status(404).json({ message: "No se encontraron ligas para este jugador" });
+        }
+    }
 }
 
 export const betsController = new BetsController();

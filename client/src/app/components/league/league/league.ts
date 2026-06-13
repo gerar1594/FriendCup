@@ -11,11 +11,13 @@ import { Clasification } from "../clasification/clasification";
 import { AddMatchModal } from "../../match/add-match-modal/add-match-modal";
 import { PlayerService } from '../../../services/players/player-service.service';
 import { BetsService } from '../../../services/bets/bets-service.service';
+import { PredictionModalComponent } from '../../prediction-modal/prediction-modal';
+import { PredictionModalView } from '../../prediction-modal-view/prediction-modal-view';
 
 type LeagueTab = 'clasificacion' | 'jornadas' | 'extras';
 @Component({
     selector: 'app-league',
-    imports: [MatchCard, CommonModule, Clasification, AddMatchModal], // Añadido CommonModule por si usas directivas básicas
+    imports: [MatchCard, CommonModule, Clasification, AddMatchModal, PredictionModalComponent, PredictionModalView], // Añadido CommonModule por si usas directivas básicas
     templateUrl: './league.html',
     styleUrl: './league.scss',
 })
@@ -37,6 +39,7 @@ export class League implements OnInit {
 
     leagueData = signal<any>(null);
     classification = signal<any[]>([]);
+    betData = signal<any>(null)
     protected matches = signal<any[]>([]);
     protected matchesExtra = signal<any[]>([]);
     adminMode = signal<boolean>(false); 
@@ -45,6 +48,9 @@ export class League implements OnInit {
     // Agrega el Signal dentro de tu clase
     activeTab = signal<LeagueTab>('clasificacion');
     isMatchModalOpen = signal<boolean>(false);
+    public isPredictionModalOpen = signal<boolean>(false);
+    public isPredictionModalViewOpen = signal<boolean>(false);
+
 
     // Función auxiliar para agrupar los partidos por Jornada en el HTML
     protected jornadas = computed(() => {
@@ -71,6 +77,8 @@ export class League implements OnInit {
         });
     }
 
+
+    
 
 
     /**
@@ -115,7 +123,6 @@ export class League implements OnInit {
         this.matchService.getMatchExtraByLeague(this.idLeague()).subscribe({
             next: (res) => {
                 this.matchesExtra.set(res.matches);
-
                 // Si le pedimos reintentar (porque venimos de un cambio de estado) y aún no hay partidos
                 if (retryIfMatchesEmpty && (!res.matches || res.matches.length === 0)) {
                     console.log('⏳ Los partidos aún se están generando en el servidor. Reintentando en 1.5 segundos...');
@@ -139,6 +146,14 @@ export class League implements OnInit {
         this.leaguesService.isPlayerInLeague(this.idLeague(), currentUserId).subscribe({
             next: (res) => {
                 this.isPlayer.set(res.isPlayer);
+            },
+            error: (err) => {
+                console.error('Error verificando acceso a la liga:', err);
+            }
+        });
+        this.betsService.getOrderLeagueBet(this.idLeague()).subscribe({
+            next: (res) => {
+                this.betData.set(res);
             },
             error: (err) => {
                 console.error('Error verificando acceso a la liga:', err);
@@ -283,14 +298,22 @@ export class League implements OnInit {
     onChangeSumarExtra(event: Event) {
         const checkbox = event.target as HTMLInputElement;
         const isChecked = checkbox.checked;
-        
+
         this.leagueData().Configuration.sumarJornadasExtra = isChecked; // Actualizamos el tipo de jornada en el frontend para que se refleje inmediatamente
+    }
 
+    onChangeBets(event: Event) {
+        const checkbox = event.target as HTMLInputElement;
+        const isChecked = checkbox.checked;
 
+        this.leagueData().Configuration.bets = isChecked; // Actualizamos el tipo de jornada en el frontend para que se refleje inmediatamente
     }
 
     onSaveConfiguration(){
-        this.leaguesService.updateLeagueConfiguration(this.leagueData().IDLeague, this.leagueData().Configuration).subscribe({
+        const resetearJornadas = confirm(
+            '¿Deseas resetear las jornadas existentes con esta nueva configuración? (Aceptar = Sí, resetear y regenerar / Cancelar = No, mantener las jornadas actuales)'
+        );
+        this.leaguesService.updateLeagueConfiguration(this.leagueData().IDLeague,this.leagueData().Configuration, resetearJornadas).subscribe({
             next: () => {
                 this.notifService.show(`Configuración de la liga actualizada`, 'success');
                 this.loadLeagueData();
@@ -352,4 +375,53 @@ export class League implements OnInit {
         })
     }
 
+
+    public guardarPrediccionFinal(listaOrdenada: any[]) {
+        // Aquí tienes la lista reordenada exacta elegida por el usuario
+        // Envías el orden final de los IDs de los jugadores a tu backend Node/MySQL
+        // Ejemplo: const listIds = listaOrdenada.map(p => p.IDPlayer);
+        console.log(listaOrdenada)
+        this.betsService.saveOrderLeagueBet({idLeague: this.leagueData().IDLeague, prediction: listaOrdenada}).subscribe({
+            next: (res) => {
+                // Recargamos candidatos para que se actualice la estrella '⭐' al lado del nombre
+                this.loadLeagueData();
+                this.notifService.show(res.message, 'success');
+
+            },
+            error: (err) => {
+                console.error('Error al guardar la porra de liga', err);
+                this.notifService.show(err.message, 'error');
+
+                // Si falla, podrías revertir al estado anterior o limpiar
+            }
+        })
+    }
+
+    public getCampeon(){
+        let campeon = null;
+        for(let player of this.classification()){
+            if(player.MiVotoCampeon ){
+                campeon = player
+                break;
+            }
+        }
+        if(campeon){
+            if(campeon.NamePlayerLeague) {
+                return campeon.NamePlayerLeague 
+            } else {
+                return campeon.NamePlayer
+            }
+        }
+        else{
+            return "No hay campeon elegido"
+        }
+    }
+
+    public onChangePredictionModal(){
+        if(this.leagueData().Configuration.bets){
+            this.isPredictionModalOpen.set(true);
+        }else{
+            this.isPredictionModalViewOpen.set(true);
+        }
+    }
 }

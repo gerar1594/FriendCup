@@ -11,6 +11,8 @@ class BetsRoutes {
     config(): void {
         this.router.post('/save-match', betsController.saveBet);
         this.router.post('/save-league', betsController.saveLeagueBet);
+        this.router.post('/save-order-league', betsController.saveOrderLeagueBet);
+        this.router.get('/:idLeague/bet-order-league', betsController.getOrderLeagueBet);
 
     }
 }

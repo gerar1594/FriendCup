@@ -23,6 +23,7 @@ export class ModifyMatchDialog implements OnInit {
     private authService = inject(AuthService);
     adminMode = input<boolean>(false);
     namePlayerLeague = input<boolean>(false);
+    isModify = input<boolean>(false);
 
     
 
@@ -89,27 +90,48 @@ export class ModifyMatchDialog implements OnInit {
 
     save() {
         const idMatch = this.match().IDMatch;
-        if(this.authService.currentUser()) {
-            const payload = { periodos: this.formPeriodos(), idPlayer: this.authService.currentUser().idPlayer }; // Enviamos solo los periodos, el backend recalculará los totales
+        for(let periodo of this.formPeriodos()){
+            if(!periodo.local){
+                periodo.local = 0;
+            }
 
-            if(this.adminMode() || !this.match().DayTrip) {
-                this.matchesService.validateMatchAdmin(idMatch, payload).subscribe({
-                    next: (res) => {
-                        this.notificationService.show(res.message, 'success');
-                        this.onSaved.emit();
-                        this.onClose.emit();
-                    },
-                    error: (err) => this.notificationService.show(err.message, 'error')
-                });
+            if(!periodo.visitante){
+                periodo.visitante = 0;
+            }
+        }
+
+        if(this.authService.currentUser()) {
+            if(this.isModify()){
+                const payload = { periodos: this.formPeriodos(), idPlayer: this.authService.currentUser().idPlayer }; // Enviamos solo los periodos, el backend recalculará los totales
+
+                if(this.adminMode() || !this.match().DayTrip) {
+                    this.matchesService.validateMatchAdmin(idMatch, payload).subscribe({
+                        next: (res) => {
+                            this.notificationService.show(res.message, 'success');
+                            this.onSaved.emit();
+                            this.onClose.emit();
+                        },
+                        error: (err) => this.notificationService.show(err.message, 'error')
+                    });
+                }else{
+                    this.matchesService.updateResult(idMatch, payload).subscribe({
+                        next: (res) => {
+                            this.notificationService.show(res.message, 'success');
+                            this.onSaved.emit();
+                            this.close();
+                        },
+                        error: (err) => this.notificationService.show(err.message, 'error')
+                    });
+                }
             }else{
-                this.matchesService.updateResult(idMatch, payload).subscribe({
-                    next: (res) => {
-                        this.notificationService.show(res.message, 'success');
-                        this.onSaved.emit();
-                        this.close();
-                    },
-                    error: (err) => this.notificationService.show(err.message, 'error')
-                });
+                this.matchesService.updateAndRecalculateMatch(idMatch, this.formPeriodos()).subscribe({
+                        next: (res) => {
+                            this.notificationService.show(res.message, 'success');
+                            this.onSaved.emit();
+                            this.close();
+                        },
+                        error: (err) => this.notificationService.show(err.message, 'error')
+                    });
             }
         }
     }

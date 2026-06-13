@@ -10,8 +10,31 @@
 
             <form (submit)="onSaveMatch($event)" class="p-6 overflow-y-auto flex flex-col gap-4">
                 
-
-
+                <!-- 🗓️ CAMPO DE JORNADA (INPUT LIBRE) -->
+                <div class="flex flex-col gap-1 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                    <label for="matchJornada" class="text-xs font-bold text-neutral-700 flex items-center gap-1">
+                        📅 Número de Jornada
+                    </label>
+                    <div class="relative mt-1">
+                        <input 
+                            id="matchJornada"
+                            type="number" 
+                            name="dayTrip" 
+                            [(ngModel)]="newMatchForm.dayTrip"
+                            placeholder="Ej: 5 (Dejar vacío para Jornada Extra)"
+                            min="1"
+                            class="w-full p-2.5 pl-3 rounded-lg border border-neutral-300 bg-white text-sm text-neutral-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium"
+                        >
+                        @if (!newMatchForm.dayTrip) {
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 pointer-events-none">
+                                Extra ✨
+                            </span>
+                        }
+                    </div>
+                    <p class="m-0 mt-1.5 text-[10px] text-neutral-500 italic">
+                        * Si no introduces un número, el partido se clasificará como "Extra" fuera del calendario regular.
+                    </p>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                     <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col gap-3">
                         <h4 class="m-0 text-sm font-bold text-blue-700 flex items-center gap-1">🏠 Bando Local</h4>

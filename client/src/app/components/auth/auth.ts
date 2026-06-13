@@ -25,46 +25,84 @@ export class AuthComponent implements OnInit {
     isLoginMode = signal<boolean>(true);
     errorMessage = signal<string>('');
 
-    // Inicializar formulario único con validaciones estrictas
-    authForm: FormGroup = this.fb.group({
-        Nombre: ['', [Validators.minLength(3)]],
-        Email: ['', [Validators.required, Validators.email]],
-        Password: ['', [Validators.required, Validators.minLength(6)]]
-    });
+    // Declaramos el tipo del formulario (se inicializa limpiamente en el ngOnInit -> initForm)
+    authForm!: FormGroup;
 
     ngOnInit(): void {
-        if(this.authService.currentUser()) {
+        this.initForm();
+        if (this.authService.currentUser()) {
             this.router.navigate(['/leagues/manage']);
         }
+    }
+
+    private initForm() {
+        this.authForm = this.fb.group({
+            // En login acepta tanto Correo como Nombre de usuario
+            Email: ['', [Validators.required]], 
+            Password: ['', [Validators.required, Validators.minLength(6)]],
+            Nombre: ['']
+        });
+        this.updateValidators();
+    }
+
+    /**
+     * Ajusta dinámicamente las restricciones del formulario según el modo actual
+     */
+    private updateValidators() {
+        const emailControl = this.authForm.get('Email');
+        const nombreControl = this.authForm.get('Nombre');
+
+        if (this.isLoginMode()) {
+            // Modo Login: El campo acepta texto plano (username) o formato email de forma indistinta
+            emailControl?.setValidators([Validators.required]);
+            nombreControl?.clearValidators();
+        } else {
+            // Modo Registro: El campo Email es estrictamente un correo electrónico y el Nombre es obligatorio
+            emailControl?.setValidators([Validators.required, Validators.email]);
+            nombreControl?.setValidators([Validators.required, Validators.minLength(3)]);
+        }
+
+        // Forzamos a Angular a recalcular el estado de validez de los inputs de inmediato
+        emailControl?.updateValueAndValidity();
+        nombreControl?.updateValueAndValidity();
     }
 
     toggleMode() {
         this.errorMessage.set('');
         this.isLoginMode.update(mode => !mode);
         this.authForm.reset();
+        
+        // ✨ CORRECCIÓN CRÍTICA: Reasignamos los validadores correspondientes al nuevo modo tras resetear
+        this.updateValidators();
     }
 
     onSubmit() {
         if (this.authForm.invalid) return;
 
         const data = this.authForm.value;
+
         if (this.isLoginMode()) {
-            this.authService.login(this.authForm.value).subscribe({
+            this.authService.login(data).subscribe({
                 next: (res: any) => {
                     // 1. Guardamos el estado en la señal global
                     this.authService.loginSuccess(res);
+
                     // 2. Comprobamos si venía de un enlace 'friendcup.com/invite/CODIGO'
                     const pendingCode = localStorage.getItem('pending_invite_code');
                     if (pendingCode) {
                         localStorage.removeItem('pending_invite_code');
                         console.log('🔗 Código de invitación pendiente detectado:', pendingCode);
+
                         // Te unes a la liga de golpe y te redirige a ella
-                        this.leaguesService.joinLeague({InvitationCode: pendingCode, IDPlayer: this.authService.currentUser().idPlayer}).subscribe({
+                        this.leaguesService.joinLeague({
+                            InvitationCode: pendingCode, 
+                            IDPlayer: this.authService.currentUser().idPlayer
+                        }).subscribe({
                             next: (joinRes: any) => this.router.navigate(['/league', joinRes.idLeague]),
                             error: (err) => {
                                 console.error('Error al unirse a la liga con código pendiente:', pendingCode);
                                 this.notificationService.show('No se pudo unir a la liga con el código proporcionado. Redirigiendo al dashboard.' + err.error?.message, 'error');
-                                this.router.navigate(['/leagues/manage'])
+                                this.router.navigate(['/leagues/manage']);
                             }
                         });
                     } else {
@@ -73,7 +111,7 @@ export class AuthComponent implements OnInit {
                     }
                 },
                 error: (err) => {
-                    this.notificationService.show('Credenciales incorrectas: ' + err.error.message, 'error');
+                    this.notificationService.show('Credenciales incorrectas: ' + (err.error?.message || 'Error de autenticación'), 'error');
                 }
             });
         } else {
@@ -85,10 +123,9 @@ export class AuthComponent implements OnInit {
             this.authService.register(data).subscribe({
                 next: () => {
                     this.notificationService.show('¡Cuenta creada con éxito! Ya puedes iniciar sesión.', 'success');
-
                     this.toggleMode();
                 },
-                error: (err) => this.errorMessage.set(err.error.message || 'Error en el registro.')
+                error: (err) => this.errorMessage.set(err.error?.message || 'Error en el registro.')
             });
         }
     }

@@ -10,7 +10,7 @@ class AuthRoutes {
 
     config(): void {
         this.router.post('/register', authController.register);
-        this.router.post('/login', authController.login);
+        this.router.post('/login', authController.loginUserPass);
     }
 }
 

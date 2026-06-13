@@ -26,7 +26,7 @@
                 VS
             </div>
             <div class="flex-1 flex flex-col items-center font-bold text-neutral-700 text-base text-left truncate">
-                @for (item of this.match().JugadoresLocalNames; track $index) {
+                @for (item of this.match().JugadoresVisitanteNames; track $index) {
                     <div class="inline-flex gap-1 text-xs">
                         @if (namePlayerLeague()) {
                             {{ item.NamePlayerLeague || item.NamePlayer }}

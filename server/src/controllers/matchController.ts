@@ -72,7 +72,6 @@ class MatchController {
             try {
                 for (const p of partidos) {
                     // Insertar partido
-                    console.log("Partido",p);
 
                     console.log("INSERT INTO matches (IDLeague, DayTrip, Estado, JugadoresLocal, JugadoresVisitante) VALUES (?, ?, 'Pendiente', ?, ?)", [idLeague, dayTrip, p.local.NamePlayer, p.visitante.NamePlayer]);
                     const [resMatch]: any = await connection.query(
@@ -334,52 +333,53 @@ class MatchController {
 
         try {
 
-            const querySql =`SELECT DISTINCT 
-                                            m.IDMatch, 
-                                            m.DayTrip, 
-                                            m.JugadoresLocal, 
-                                            m.JugadoresVisitante,
-                                            m.Estado, 
-                                            m.Resultado, 
-                                            l.NameLeague, 
-                                            s.*, 
-                                            mp.Bando AS bando,
+            const querySql =`SELECT DISTINCT
+                                m.IDMatch,
+                                m.DayTrip,
+                                m.JugadoresLocal,
+                                m.JugadoresVisitante,
+                                m.Estado,
+                                m.Resultado,
+                                m.Fecha,
+                                l.NameLeague,
+                                s.*,
+                                mp.Bando AS bando,
 
-                                            -- 🏠 LOCALES: Devuelve un array de objetos JSON
-                                            (SELECT JSON_ARRAYAGG(
-                                                        JSON_OBJECT(
-                                                            'NamePlayer', pl_loc.NamePlayer,
-                                                            'NamePlayerLeague', lp_loc.NamePlayerLeague
-                                                        )
-                                                    )
-                                            FROM matchplayer mp_local
-                                            JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
-                                            LEFT JOIN leagueplayer lp_loc ON pl_loc.IDPlayer = lp_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
-                                            WHERE mp_local.IDMatch = m.IDMatch
-                                            AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
+                                -- 🏠 LOCALES: Devuelve un array de objetos JSON
+                                (SELECT JSON_ARRAYAGG(
+                                            JSON_OBJECT(
+                                                'NamePlayer', pl_loc.NamePlayer,
+                                                'NamePlayerLeague', lp_loc.NamePlayerLeague
+                                            )
+                                        )
+                                FROM matchplayer mp_local
+                                JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
+                                LEFT JOIN leagueplayer lp_loc ON pl_loc.IDPlayer = lp_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
+                                WHERE mp_local.IDMatch = m.IDMatch
+                                AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
 
-                                            -- 🏃‍♂️ VISITANTES: Devuelve un array de objetos JSON
-                                            (SELECT JSON_ARRAYAGG(
-                                                        JSON_OBJECT(
-                                                            'NamePlayer', pl_vis.NamePlayer,
-                                                            'NamePlayerLeague', lp_vis.NamePlayerLeague
-                                                        )
-                                                    )
-                                            FROM matchplayer mp_visit
-                                            JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
-                                            LEFT JOIN leagueplayer lp_vis ON pl_vis.IDPlayer = lp_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
-                                            WHERE mp_visit.IDMatch = m.IDMatch
-                                            AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
-                                            mb.PredictedBando AS MiApuesta,
-                                            mb.PredictedScore AS MiResultadoApostado
+                                -- 🏃‍♂️ VISITANTES: Devuelve un array de objetos JSON
+                                (SELECT JSON_ARRAYAGG(
+                                            JSON_OBJECT(
+                                                'NamePlayer', pl_vis.NamePlayer,
+                                                'NamePlayerLeague', lp_vis.NamePlayerLeague
+                                            )
+                                        )
+                                FROM matchplayer mp_visit
+                                JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
+                                LEFT JOIN leagueplayer lp_vis ON pl_vis.IDPlayer = lp_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
+                                WHERE mp_visit.IDMatch = m.IDMatch
+                                AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
+                                mb.PredictedBando AS MiApuesta,
+                                mb.PredictedScore AS MiResultadoApostado
 
-                                        FROM matches m
-                                        INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
-                                        INNER JOIN leagues l ON m.IDLeague = l.IDLeague
-                                        INNER JOIN sports s ON l.IDSport = s.IDSport
-                                        LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
-                                        WHERE mp.IDPlayer = ?
-                                        ORDER BY m.DayTrip ASC, m.Estado DESC;`
+                            FROM matches m
+                            INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch
+                            INNER JOIN leagues l ON m.IDLeague = l.IDLeague
+                            INNER JOIN sports s ON l.IDSport = s.IDSport
+                            LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
+                            WHERE mp.IDPlayer = ?
+                            ORDER BY m.DayTrip ASC, m.Estado DESC;`
 
             /*console.log("================== QUERY EJECUTADA ==================");
             console.log(pool.format(querySql, [idPlayer]));
@@ -415,7 +415,8 @@ class MatchController {
                 m.IDMatch, 
                 m.DayTrip, 
                 m.Estado, 
-                m.Resultado, 
+                m.Resultado,
+                m.Fecha,
                 l.NameLeague, 
                 s.*,
 
@@ -469,7 +470,6 @@ class MatchController {
 
         // 3. Pasamos la constante formateada directamente a la base de datos
         const [matches]: any = await pool.query(querySql, [currentUserId, currentUserId, idleague]);
-        
         const formattedMatches = matches.map((match: any) => ({
             ...match,
             JugadoresLocalNames: typeof match.JugadoresLocalNames === 'string' ? JSON.parse(match.JugadoresLocalNames) : match.JugadoresLocalNames,
@@ -482,7 +482,7 @@ class MatchController {
         });
 
     }
-    
+
     public async getMatchesExtraByLeague(req: Request, res: Response): Promise<any> {
         const { idleague } = req.params;
         const currentUserId = req.headers['x-user-id'];
@@ -495,6 +495,7 @@ class MatchController {
                 m.DayTrip,
                 m.Estado,
                 m.Resultado,
+                m.Fecha,
                 l.NameLeague,
                 s.*,
 
@@ -561,7 +562,7 @@ class MatchController {
         });
 
     }
-    
+
 
     /**
      * 3. ACTUALIZAR EL MARCADOR DINÁMICO EN FORMATO JSON
@@ -700,7 +701,7 @@ class MatchController {
                 // 1. OBTENER INFORMACIÓN DEL PARTIDO Y REGLAS DEL DEPORTE
                 // ==========================================================
                 const [matchData]: any = await connection.query(
-                    `SELECT m.IDLeague, m.Winner, m.Estado, m.DayTrip,
+                    `SELECT m.IDLeague, m.Winner, m.Estado, m.DayTrip, m.Resultado,
                         (SELECT Bando FROM matchplayer WHERE IDMatch = m.IDMatch AND IDPlayer = ?) AS BandoEditor,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs,
@@ -718,7 +719,7 @@ class MatchController {
                 }
 
                 const partido = matchData[0];
-                console.log(partido)
+                console.log(partido.Resultado.periodos)
                 // Validación de seguridad: el usuario debe participar en el partido
                 if (!partido.BandoEditor && partido.IDAdmin != currentUserId) {
 
@@ -732,6 +733,13 @@ class MatchController {
                     return res.status(400).json({ message: "Este partido ya ha sido cerrado previamente." });
                 }
 
+
+                let pLocal : number = 0;
+                let pVisitante : number = 0;
+                for(let juegos of partido.Resultado.periodos){
+                    pLocal += juegos.local;
+                    pVisitante += juegos.visitante;
+                }
                 // ==========================================================
                 // 2. MÁQUINA DE ESTADOS (Doble Firma)
                 // ==========================================================
@@ -754,9 +762,10 @@ class MatchController {
                 // DENTRO DE TU CIERRE EN 'validateMatchResult':
 
                 const configuration = JSON.parse(matchData[0].Configuration)
-                if (debeCerrarYAsignar && (partido.DayTrip == null && configuration.sumarJornadasExtra)) {
+
+                if (debeCerrarYAsignar && (partido.DayTrip != null || (partido.DayTrip == null && configuration.sumarJornadasExtra))) {
                     // 🔥 Reutilizamos la función común de asignación de puntos
-                    await asignarPuntosLiga(connection, partido);
+                    await asignarPuntosLiga(connection, partido, {pLocal, pVisitante});
                 }
                 // ==========================================================
                 // 4. CAMBIO DE ESTADO DEL PARTIDO EN 'matches'
@@ -814,7 +823,7 @@ class MatchController {
                 // 1. VERIFICACIÓN ESTRICTA DE PERMISOS DE ADMINISTRADOR
                 // ==========================================================
                 const [matchConfig]: any = await connection.query(
-                    `SELECT s.ResultadoFormat, m.IDLeague, m.Estado, l.IDAdmin, m.DayTrip,
+                    `SELECT s.ResultadoFormat, m.Resultado, m.IDLeague, m.Estado, l.IDAdmin, m.DayTrip,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
                         (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs
                     FROM matches m
@@ -858,6 +867,16 @@ class MatchController {
                 const totalLocal = Math.round(exprLocal.evaluate(variablesEntrada));
                 const totalVisitante = Math.round(exprVisitante.evaluate(variablesEntrada));
 
+                let pLocal : number = 0;
+                let pVisitante : number = 0;
+                for(let juegos of Object.keys(variablesEntrada)){
+                    if(juegos.endsWith('_l')){
+                        pLocal += variablesEntrada[juegos];
+                    }else if (juegos.endsWith('_v')){
+                        pVisitante += variablesEntrada[juegos];
+                    }
+                }
+
                 // Estructuramos el JSON final
                 const marcadorJSON = {
                     totalLocal,
@@ -877,6 +896,7 @@ class MatchController {
                 // 3. APLICAR CAMBIOS DE MARCADOR Y REPARTIR PUNTOS DE GOLPE
                 // ==========================================================
                 // Actualizamos el marcador directamente
+
                 await connection.query(
                     `UPDATE matches 
                     SET Resultado = ?, Estado = 'Jugado', Winner = ? 
@@ -888,7 +908,7 @@ class MatchController {
                 const configuration = JSON.parse(isAdmin[0].Configuration)
 
                 if(partido.DayTrip != null || (partido.DayTrip == null && configuration.sumarJornadasExtra))
-                    await asignarPuntosLiga(connection, partido);
+                    await asignarPuntosLiga(connection, partido, {pLocal, pVisitante});
 
                 await connection.commit();
                 return res.status(200).json({
@@ -1044,7 +1064,7 @@ class MatchController {
     };
 
     public async createMatch(req: Request, res: Response): Promise<any> {
-        const { idLeague, locales, visitantes } = req.body;
+        const { idLeague, locales, visitantes, dayTrip } = req.body;
         const currentUserId = req.headers['x-user-id'];
         console.log(req.body)
         if ( !idLeague ) {
@@ -1060,7 +1080,7 @@ class MatchController {
                 LIMIT 1;`,
                 [idLeague, currentUserId, idLeague, currentUserId]
             );
-            
+
             console.log("Resultado de la verificación de administrador:", league);
             if (league.length === 0) {
                 return res.status(403).json({
@@ -1091,11 +1111,10 @@ class MatchController {
             try {
                 // A. Insertar el partido base (Por defecto 'Pendiente')
                 const [matchResult]: any = await connection.query(
-                    "INSERT INTO matches (IDLeague, DayTrip, Estado) VALUES (?, NULL, 'Pendiente')",
-                    [idLeague]
+                    "INSERT INTO matches (IDLeague, DayTrip, Estado) VALUES (?, ?, 'Pendiente')",
+                    [idLeague,dayTrip]
                 );
                 const idMatch = matchResult.insertId;
-                console.log(idMatch);
                 let nIdAnonimo = 0;
 
                 // Función auxiliar interna para procesar cada bando
@@ -1144,9 +1163,273 @@ class MatchController {
             return res.status(500).json({ message: "Error al verificar permisos de administrador: " + error.message });
         }
     }
+
+    public async setFecha(req: Request, res: Response): Promise<any> {
+        const { idMatch } = req.params; // ID del partido a actualizar
+        const { fecha } = req.body;     // El string de fecha y hora recibido ("2026-06-15T19:30")
+        const currentUserId = req.headers['x-user-id']; // ID del usuario que hace la petición
+
+        // 🛡️ Validación básica de entrada
+        if (!fecha) {
+            return res.status(400).json({ message: "La fecha y hora son obligatorias." });
+        }
+
+        try {
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            try {
+                // 1. Verificamos si el partido existe y obtenemos el ID de la liga para validar permisos
+
+                const [match]: any = await connection.query(
+                    "SELECT IDLeague FROM matches WHERE IDMatch = ?",
+                    [idMatch, currentUserId]
+                );
+
+                if (match.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "El partido no existe." });
+                }
+
+                const [playerBando]: any = await connection.query(
+                    `SELECT * FROM matchplayer WHERE IDMatch = ? AND IDPlayer = ?`,
+                    [idMatch, currentUserId]
+                );
+
+
+                const idLeague = match[0].IDLeague;
+
+                // 2. [Opcional pero Recomendado] Verificar que quien edita es el Admin de la liga
+                const [liga]: any = await connection.query(
+                    "SELECT IDAdmin FROM leagues WHERE IDLeague = ?",
+                    [idLeague]
+                );
+
+                /*if (liga.length === 0 || liga[0].IDAdmin !== Number(currentUserId) || playerBando.length === 0) {
+                    await connection.rollback();
+                    return res.status(403).json({ message: "No tienes permisos de administrador para fijar la fecha." });
+                    if (playerBando.length === 0) {
+                        await connection.rollback();
+                        return res.status(403).json({ message: "No tienes permiso para editar este partido porque no participas en él." });
+                    }
+                }*/
+
+                // 3. Actualizamos la fecha del partido en la base de datos
+                // Nota: Asegúrate de que el nombre de la columna coincida con tu tabla (ej: 'Fecha')
+                await connection.query(
+                    "UPDATE matches SET Fecha = ? WHERE IDMatch = ?",
+                    [fecha, idMatch]
+                );
+
+                await connection.commit();
+                
+                return res.status(200).json({ 
+                    message: "Fecha y hora del partido actualizadas con éxito.",
+                    fecha: fecha 
+                });
+
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+
+        } catch (error: any) {
+            console.error("Error al establecer la fecha del partido:", error);
+            return res.status(500).json({ 
+                message: "Error interno del servidor al actualizar la fecha: " + error.message 
+            });
+        }
+    }
+
+    public async updateAndRecalculateMatch(req: Request, res: Response): Promise<any> {
+        const { idMatch } = req.params;
+        const { periodos } = req.body; // Array con el nuevo marcador: [{local: 6, visitante: 4}, ...]
+        const currentUserId = req.headers['x-user-id'];
+
+        if (!periodos) {
+            return res.status(400).json({ message: "El nuevo marcador (periodos) es obligatorio." });
+        }
+
+        try {
+            const connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            try {
+                // =================================================================
+                // 1. OBTENER ESTADO ACTUAL, LIGA, CONFIGURACIÓN Y JUGADORES
+                // =================================================================
+                const [matchConfig]: any = await connection.query(
+                    `SELECT s.ResultadoFormat, m.Resultado, m.IDLeague, m.Estado, m.Winner, m.DayTrip, l.IDAdmin, l.Configuration,
+                        (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Local') AS LocalesIDs,
+                        (SELECT GROUP_CONCAT(IDPlayer) FROM matchplayer WHERE IDMatch = m.IDMatch AND Bando = 'Visitante') AS VisitantesIDs
+                    FROM matches m
+                    JOIN leagues l ON m.IDLeague = l.IDLeague
+                    JOIN sports s ON l.IDSport = s.IDSport
+                    WHERE m.IDMatch = ?`, [idMatch]
+                );
+
+                if (matchConfig.length === 0) {
+                    await connection.rollback();
+                    return res.status(404).json({ message: "Partido no encontrado." });
+                }
+
+                const partido = matchConfig[0];
+                const idLiga = partido.IDLeague;
+                const configuration = JSON.parse(partido.Configuration);
+
+                // Seguridad: Solo el admin de la liga puede alterar retroactivamente un partido
+                if (partido.IDAdmin != currentUserId) {
+                    await connection.rollback();
+                    return res.status(403).json({ message: "Acceso denegado. Solo el administrador puede modificar el partido." });
+                }
+
+                const seDebenContarPuntos = partido.DayTrip !== null || (partido.DayTrip === null && configuration.sumarJornadasExtra);
+
+                // =================================================================
+                // 2. REVERTIR PUNTOS Y DIFERENCIA DEL MARCADOR ANTIGUO (Si estaba 'Jugado')
+                // =================================================================
+                if (partido.Estado === 'Jugado' && partido.Resultado && seDebenContarPuntos) {
+                    // Obtenemos los totales antiguos guardados en el JSON o recalculados
+                    const resultadoViejo = typeof partido.Resultado === 'string' ? JSON.parse(partido.Resultado) : partido.Resultado;
+
+                    const winnerViejo = Number(partido.Winner);
+                    let totalLocalViejo : number = 0;
+                    let totalVisitanteViejo : number = 0;
+                    for(let juegos of partido.Resultado.periodos){
+                        totalLocalViejo += juegos.local;
+                        totalVisitanteViejo += juegos.visitante;
+                    }
+
+                    let ptsL = 0, vicL = 0, derL = 0, empL = 0;
+                    let ptsV = 0, vicV = 0, derV = 0, empV = 0;
+
+                    if (winnerViejo === 1) {
+                        ptsL = 3; vicL = 1; derV = 1;
+                    } else if (winnerViejo === 2) {
+                        derL = 1; ptsV = 3; vicV = 1;
+                    } else if (winnerViejo === 3) {
+                        ptsL = 1; empL = 1; ptsV = 1; empV = 1;
+                    }
+
+                    const idsLocales = partido.LocalesIDs ? partido.LocalesIDs.split(',').map(Number) : [];
+                    const idsVisitantes = partido.VisitantesIDs ? partido.VisitantesIDs.split(',').map(Number) : [];
+
+                    // Restamos estadísticas e invertimos la diferencia (Diff) restando (Local - Visitante)
+                    if (idsLocales.length > 0) {
+                        await connection.query(
+                            `UPDATE leagueplayer
+                            SET Points = Points - ?, Victories = Victories - ?, Defeats = Defeats - ?, Draws = Draws - ?, Diff = Diff - ?
+                            WHERE IDLeague = ? AND IDPlayer IN (?)`,
+                            [ptsL, vicL, derL, empL, (totalLocalViejo - totalVisitanteViejo), idLiga, idsLocales]
+                        );
+                    }
+                    if (idsVisitantes.length > 0) {
+                        await connection.query(
+                            `UPDATE leagueplayer
+                            SET Points = Points - ?, Victories = Victories - ?, Defeats = Defeats - ?, Draws = Draws - ?, Diff = Diff - ?
+                            WHERE IDLeague = ? AND IDPlayer IN (?)`,
+                            [ptsV, vicV, derV, empV, (totalVisitanteViejo - totalLocalViejo), idLiga, idsVisitantes]
+                        );
+                    }
+                }
+
+                // =================================================================
+                // 3. PARSEAR Y EVALUAR EL NUEVO MARCADOR CON EL MOTOR DE FÓRMULAS
+                // =================================================================
+                const datosPeriodos = typeof periodos === 'string' ? JSON.parse(periodos) : periodos;
+                const formato = partido.ResultadoFormat;
+                const parser = new Parser();
+                const exprLocal = parser.parse(formato.formulaLocal);
+                const exprVisitante = parser.parse(formato.formulaVisitante);
+
+                const variablesEntrada: any = {};
+                datosPeriodos.forEach((p: any, index: number) => {
+                    const numP = index + 1;
+                    variablesEntrada[`p${numP}_l`] = Number(p.local || 0);
+                    variablesEntrada[`p${numP}_v`] = Number(p.visitante || 0);
+                });
+
+                const totalLocalNuevo = Math.round(exprLocal.evaluate(variablesEntrada));
+                const totalVisitanteNuevo = Math.round(exprVisitante.evaluate(variablesEntrada));
+
+                // Estructurar el nuevo JSON de resultado
+                const nuevoMarcadorJSON = {
+                    totalLocal: totalLocalNuevo,
+                    totalVisitante: totalVisitanteNuevo,
+                    periodos: datosPeriodos
+                };
+
+                let nuevoWinner = 3; // Empate
+                if (totalLocalNuevo > totalVisitanteNuevo) nuevoWinner = 1;
+                else if (totalVisitanteNuevo > totalLocalNuevo) nuevoWinner = 2;
+
+                // =================================================================
+                // 4. GUARDAR EL NUEVO MARCADOR EN LA BASE DE DATOS
+                // =================================================================
+                await connection.query(
+                    `UPDATE matches 
+                    SET Resultado = ?, Estado = 'Jugado', Winner = ? 
+                    WHERE IDMatch = ?`,
+                    [JSON.stringify(nuevoMarcadorJSON), nuevoWinner, idMatch]
+                );
+
+                // =================================================================
+                // 5. ASIGNAR LOS NUEVOS PUNTOS REUTILIZANDO TU FUNCIÓN INTERNA
+                // =================================================================
+                if (seDebenContarPuntos) {
+                    // Inyectamos el nuevo ganador simulando el objeto partido para la función existente
+                    partido.Winner = nuevoWinner;
+
+                    // Calculamos el sumatorio total de los "puntos de juego" (goles/puntos/juegos) del nuevo periodo
+                    let pLocalNuevo = 0;
+                    let pVisitanteNuevo = 0;
+                    Object.keys(variablesEntrada).forEach(clave => {
+                        if (clave.endsWith('_l')) pLocalNuevo += variablesEntrada[clave];
+                        if (clave.endsWith('_v')) pVisitanteNuevo += variablesEntrada[clave];
+                    });
+
+                    // Invocamos tu función común para que asigne los nuevos puntos e incremente la nueva Diff
+                    await asignarPuntosLiga(connection, partido, { pLocal: pLocalNuevo, pVisitante: pVisitanteNuevo });
+
+                    // NOTA CRÍTICA: Como 'asignarPuntosLiga' hace internamente un "Matches = Matches + 1",
+                    // y en el paso 2 NO restamos partidos jugados (porque el partido se mantiene jugado, solo cambia el marcador),
+                    // tenemos que restarle 1 a 'Matches' para corregir el duplicado y que la estadística no se rompa:
+                    const idsTodos = [
+                        ...(partido.LocalesIDs ? partido.LocalesIDs.split(',') : []),
+                        ...(partido.VisitantesIDs ? partido.VisitantesIDs.split(',') : [])
+                    ].map(Number);
+
+                    if (idsTodos.length > 0) {
+                        await connection.query(
+                            `UPDATE leagueplayer SET Matches = Matches - 1 WHERE IDLeague = ? AND IDPlayer IN (?)`,
+                            [idLiga, idsTodos]
+                        );
+                    }
+                }
+
+                // Confirmamos la transacción
+                await connection.commit();
+                return res.status(200).json({
+                    message: "Partido modificado con éxito. Clasificación y diferencias (+/-) actualizadas.",
+                    resultado: nuevoMarcadorJSON
+                });
+
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        } catch (error: any) {
+            console.error("❌ Error crítico al modificar el partido retroactivamente:", error.message);
+            return res.status(500).json({ message: "Error crítico al modificar el partido: " + error.message });
+        }
+    }
 }
 
-async function asignarPuntosLiga(connection: any, partido: any): Promise<void> {
+async function asignarPuntosLiga(connection: any, partido: any, { pLocal, pVisitante }: { pLocal: number; pVisitante: number }): Promise<void> {
     const idLeague = partido.IDLeague;
     const winner = Number(partido.Winner); // 1 = Local, 2 = Visitante, 3 = Empate
 
@@ -1172,13 +1455,14 @@ async function asignarPuntosLiga(connection: any, partido: any): Promise<void> {
         ptsV = pEmpatar; empV = 1;
     }
 
+
     // A) Actualizar jugadores LOCALES
     if (idsLocales.length > 0) {
         await connection.query(
             `UPDATE leagueplayer
-            SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?
+            SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?, Diff = Diff + ?
             WHERE IDLeague = ? AND IDPlayer IN (?)`,
-            [ptsL, vicL, derL, empL, idLeague, idsLocales]
+            [ptsL, vicL, derL, empL, (pLocal - pVisitante), idLeague, idsLocales]
         );
     }
 
@@ -1186,9 +1470,9 @@ async function asignarPuntosLiga(connection: any, partido: any): Promise<void> {
     if (idsVisitantes.length > 0) {
         await connection.query(
             `UPDATE leagueplayer
-            SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?
+            SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?, Diff = Diff + ?
             WHERE IDLeague = ? AND IDPlayer IN (?)`,
-            [ptsV, vicV, derV, empV, idLeague, idsVisitantes]
+            [ptsV, vicV, derV, empV, (pVisitante - pLocal), idLeague, idsVisitantes]
         );
     }
 }

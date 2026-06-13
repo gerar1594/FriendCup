@@ -5,10 +5,11 @@ import { MatchesService } from '../../../services/matches/matches-service.servic
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../../services/notification/notification.service';
 import { BetsService } from '../../../services/bets/bets-service.service';
+import { DatePicker } from '../../date-picker/date-picker';
 
 @Component({
     selector: 'app-match-card',
-    imports: [ModifyMatchDialog, CommonModule],
+    imports: [ModifyMatchDialog, CommonModule, DatePicker],
     templateUrl: './match-card.html',
     styleUrl: './match-card.scss',
 })
@@ -29,11 +30,15 @@ export class MatchCard {
     protected formPeriodos = signal<any[]>([]);
     private authService = inject(AuthService);
 
+    isModify = signal<boolean>(false);
+
     private userId = this.authService.currentUser()?.idPlayer;
 
     protected selectedMatch = signal<any>(null);
 
     loadMatches = output<void>();
+
+    showDatePicker = signal<boolean>(false);
 
 
     protected puedeEditar = computed(() => {
@@ -167,4 +172,33 @@ export class MatchCard {
             }
         });
     }
+
+    handleFechaSeleccionada(fechaHora: string) {
+        console.log('Fecha recibida del componente hijo:', fechaHora);
+        this.match().Fecha = fechaHora;
+
+        this.matchesService.setFecha(this.match().IDMatch, {fecha : fechaHora}).subscribe({
+            next: (res) => {
+            this.notificationService.show(res.message, 'success');
+            this.loadMatches.emit();
+            },
+            error: (err) => this.notificationService.show(err.message, 'error')
+        });
+        // Aquí ejecutas tu servicio HTTP para guardar la fecha en tu base de datos Node/MySQL
+    }
+
+    openModifyModal() {
+        this.selectedMatch.set(this.match());
+
+        // Como el backend inicializa 'Marcador' con sus periodos correspondientes,
+        // simplemente clonamos el array de periodos para que el usuario edite los inputs.
+        if (this.match().Resultado && this.match().Resultado.periodos) {
+            // Hacemos una copia profunda (deep clone) para no modificar la tarjeta de fondo antes de guardar
+            this.formPeriodos.set(JSON.parse(JSON.stringify(this.match().Resultado.periodos)));
+        } else {
+            // Caso de emergencia por si hay algún partido antiguo en la BBDD sin inicializar
+            this.formPeriodos.set([{ label: 'Goles', local: 0, visitante: 0 }]);
+        }
+    }
+
 }

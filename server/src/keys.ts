@@ -17,6 +17,14 @@ export default{
         database: process.env.DB_NAME,
         port: Number(process.env.DB_PORT) || 3306
     },
+    configuracionLeagueDefault : {
+        "jornada": {
+            "tipo": "",
+            "value": 0
+        },
+        'sumarJornadasExtra': false,
+        "bets" : true
+    },
 
     newMatchesCron: '0 0 * * 1', // Lunes a las 00:00
     //newMatchesCron: '*/1 * * * *', // Cada minuto (para pruebas rápidas)

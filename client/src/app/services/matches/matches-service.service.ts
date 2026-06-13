@@ -37,8 +37,20 @@ export class MatchesService {
         const payload = { idMatch: matchId };
         return this.http.delete<any>(`${this.API_URL}/`, { body: payload });
     }
-    createManualMatch(payload: { idLeague: any; locales: any[]; visitantes: any[] }) {
+    createManualMatch(payload: { idLeague: any; locales: any[]; visitantes: any[], dayTrip: any }) {
+        if(payload.dayTrip === ''){
+            payload.dayTrip = null;
+        }
         return this.http.post<any>(`${this.API_URL}/create`, payload);
     }
+
+    setFecha(matchId: any, payload: { fecha: string }) {
+        return this.http.put<any>(`${this.API_URL}/${matchId}/fecha`, payload);
+    }
+    
+    updateAndRecalculateMatch(matchId: any, periodos: any[]){
+        return this.http.put<any>(`${this.API_URL}/${matchId}/modify`, {periodos});
+    }
+
 
 }

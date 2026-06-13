@@ -1,0 +1,60 @@
+@if (isOpen()) {
+    <div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl border border-neutral-100 p-6 w-full max-w-md mx-4 max-h-[85vh] flex flex-col transform scale-100 animate-in zoom-in-95 duration-200">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-neutral-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-base font-bold text-neutral-800 m-0 flex items-center gap-2">
+                        🔮 Tu Pronóstico Final
+                    </h3>
+                    <p class="text-[11px] text-neutral-500 m-0 mt-0.5">Arrastra y suelta los jugadores para ordenar el podio.</p>
+                </div>
+                <button (click)="isOpen.set(false)" class="text-neutral-400 hover:text-neutral-600 bg-transparent border-none cursor-pointer p-1 rounded-lg text-sm">✕</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-4 pr-1 flex flex-col gap-2 
+                        [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-neutral-50 
+                        [&::-webkit-scrollbar-thumb]:bg-neutral-200 [&::-webkit-scrollbar-thumb]:rounded-md">
+                
+                @for (player of editableList(); track player.IDPlayer; let idx = $index) {
+                    <div 
+                        draggable="true"
+                        (dragstart)="onDragStart(idx)"
+                        (dragover)="onDragOver($event, idx)"
+                        (dragend)="onDragEnd()"
+                        class="flex items-center gap-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl cursor-grab active:cursor-grabbing transition-all select-none group"
+                        [ngClass]="{'opacity-40 border-dashed border-blue-400 bg-blue-50/30': draggedIndex === idx}"
+                    >
+                        <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
+                              [ngClass]="{
+                                  'bg-amber-100 text-amber-700': idx === 0,
+                                  'bg-neutral-200 text-neutral-700': idx === 1,
+                                  'bg-orange-100 text-orange-700': idx === 2,
+                                  'bg-neutral-200/50 text-neutral-500': idx > 2
+                              }">
+                            {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1 }}
+                        </span>
+
+                        <span class="text-xs font-bold text-neutral-700 flex-1 truncate">
+                            {{ player.NamePlayerLeague || player.NamePlayer }}
+                        </span>
+
+                        <span class="text-neutral-400 group-hover:text-neutral-600 text-xs font-mono tracking-widest pointer-events-none">
+                            ⣿
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-neutral-100 flex-shrink-0">
+                <button type="button" (click)="isOpen.set(false)" class="px-3.5 py-2 text-xs font-bold text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded-lg border-none cursor-pointer transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" (click)="guardarPorra()" class="px-4 py-2 text-xs font-bold text-white bg-blue-500 hover:bg-blue-600 rounded-lg border-none cursor-pointer transition-colors shadow-sm">
+                    Guardar Pronóstico
+                </button>
+            </div>
+
+        </div>
+    </div>
+}

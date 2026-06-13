@@ -32,7 +32,8 @@ export class AddMatchModal{
         local1: 'bot',
         local2: 'bot',
         visitante1: 'bot',
-        visitante2: 'bot'
+        visitante2: 'bot',
+        dayTrip: ''
     };
 
 
@@ -42,7 +43,8 @@ export class AddMatchModal{
             local1: 'bot',
             local2: 'bot',
             visitante1: 'bot',
-            visitante2: 'bot'
+            visitante2: 'bot',
+            dayTrip: ''
         };
     }
 
@@ -60,9 +62,9 @@ export class AddMatchModal{
         const payload = {
             idLeague: this.idLeague(),
             locales: [this.newMatchForm.local1, this.newMatchForm.local2],
-            visitantes: [this.newMatchForm.visitante1, this.newMatchForm.visitante2]
+            visitantes: [this.newMatchForm.visitante1, this.newMatchForm.visitante2],
+            dayTrip: this.newMatchForm.dayTrip
         };
-
         this.matchService.createManualMatch(payload).subscribe({
             next: (res: any) => {
                 this.notifService.show(res.message || 'Partido creado con éxito', 'success');

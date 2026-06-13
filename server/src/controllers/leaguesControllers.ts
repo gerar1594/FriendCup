@@ -110,13 +110,13 @@ class LeaguesController{
             INNER JOIN sports S ON L.IDSport = S.IDSport
             WHERE L.IDLeague = ?;`,[currentUserId, currentUserId, idleague]);
         const [classification] = await pool.query(
-            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws,
+            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws, LP.Diff,
             IF(LB.PredictedWinnerID = P.IDPlayer, 1, 0) AS MiVotoCampeon
             FROM leagueplayer LP
             JOIN players P ON LP.IDPlayer = P.IDPlayer
             LEFT JOIN league_bet LB ON LB.IDLeague = LP.IDLeague AND LB.IDPlayer = ? -- ID del usuario logueado
             WHERE LP.IDLeague = ?
-            ORDER BY LP.Points DESC, LP.Matches ASC`,
+            ORDER BY LP.Points DESC, LP.Diff DESC, LP.Matches ASC`,
             [ currentUserId, idleague]
         );
         // 2. Controlamos si 'Configuration' viene como String y lo parseamos de forma segura
@@ -195,17 +195,11 @@ class LeaguesController{
                 console.log(`INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado) 
                         VALUES ('${NameLeague}', '${invitationCode}', ${IDSport}, ${IDPlayer}, 'Abierta')`)
 
-                const configuracionDefault = {
-                    "jornada": {
-                        "tipo": "",
-                        "value": 0
-                    },
-                    'sumarJornadasExtra': false,
-                };
+                
                 const [leagueResult]: any = await connection.query(
                     `INSERT INTO leagues (NameLeague, InvitationCode, IDSport, IDAdmin, Estado, Configuration) 
-                        VALUES (?, ?, ?, ?, 'Abierta',)`,
-                    [NameLeague, invitationCode, IDSport, IDPlayer, JSON.stringify(configuracionDefault) ]
+                        VALUES (?, ?, ?, ?, 'Abierta',?)`,
+                    [NameLeague, invitationCode, IDSport, IDPlayer, JSON.stringify(keys.configuracionLeagueDefault) ]
                 );
                 const newLeagueId = leagueResult.insertId;
                 console.log("Llega", newLeagueId);
@@ -499,7 +493,7 @@ class LeaguesController{
 
     public async updateConfiguration(req: Request, res: Response) {
         const { idleague } = req.params;
-        const { configuration } = req.body; // Esperamos un objeto JSON con la nueva configuración
+        const { configuration, resetearJornadas } = req.body; // Esperamos un objeto JSON con la nueva configuración
         const currentUserId = req.headers['x-user-id'];
         try{
             const connection = await pool.getConnection();
@@ -541,6 +535,14 @@ class LeaguesController{
                                 .catch((err) => console.error(err.message));
                     } else {
                         console.log(`No se generan jornadas. Solicitadas: ${targetJornadas}, Ya existentes: ${currentMaxJornada}`);
+                    }
+                }else if(configuration?.jornada?.tipo === 'manual'){
+                    if(resetearJornadas){
+                        await connection.query(
+                            "DELETE FROM matches WHERE IDLeague = ? AND DayTrip IS NOT NULL",
+                            [idleague]
+                        );
+                        console.log(`🧹 Partidos limpiados. Jornadas listas para inserción manual.`);
                     }
                 }
 
@@ -609,7 +611,7 @@ class LeaguesController{
             // acumulados de cada jugador de forma estática (ej: points, victories, defeats...), los reiniciamos a 0.
             await connection.query(
                 `UPDATE leagueplayer
-                SET Points = 0, Matches = 0, Victories = 0, Defeats = 0, Draws = 0
+                SET Points = 0, Matches = 0, Victories = 0, Defeats = 0, Draws = 0, DIff = 0
                 WHERE IDLeague = ?`,
                 [idleague]
             );
