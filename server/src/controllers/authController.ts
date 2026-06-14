@@ -117,7 +117,7 @@ class AuthController {
         if (!Email || !Password) {
             return res.status(400).json({ message: "El identificador (email/usuario) y la contraseña son requeridos." });
         }
-
+        console.log(Email, Password)
         try {
             // 2. Buscar en la BBDD pasando 'Email' tanto para comparar con la columna Email como con NamePlayer
             const [rows]: any = await pool.query(

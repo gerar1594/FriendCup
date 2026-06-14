@@ -101,7 +101,7 @@ export class ModifyMatchDialog implements OnInit {
         }
 
         if(this.authService.currentUser()) {
-            if(this.isModify()){
+            if(!this.isModify()){
                 const payload = { periodos: this.formPeriodos(), idPlayer: this.authService.currentUser().idPlayer }; // Enviamos solo los periodos, el backend recalculará los totales
 
                 if(this.adminMode() || !this.match().DayTrip) {

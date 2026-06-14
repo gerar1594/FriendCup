@@ -22,7 +22,7 @@ class MatchesRoutes{
         // Guardar/modificar marcador JSON de un partido
         this.router.put('/:idMatch/result', matchController.updateMatchResult);
         this.router.put('/:idMatch/validate', matchController.validateMatchResult);
-        this.router.put('/:idMatch/admin', matchController.adminForceUpdateAndValidate);
+        this.router.put('/:idMatch/admin', matchController.updateAndRecalculateMatch);
         this.router.put('/:idMatch/fecha', matchController.setFecha);
         this.router.put('/:idMatch/modify', matchController.updateAndRecalculateMatch);
 

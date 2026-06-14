@@ -31,7 +31,7 @@ export class PredictionModalComponent {
         effect(() => {
 
             const currentClassification = this.classification();
-            const currentBetOrder : any[] = this.betOrder().PredictOrder;
+            const currentBetOrder : any[] = this.betOrder() ? this.betOrder().PredictOrder : [];
 
             if (currentClassification.length > 0) {
                 // 🔮 Si el usuario ya tiene una apuesta guardada en la base de datos

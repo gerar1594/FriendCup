@@ -247,15 +247,29 @@ class BetsController {
             WHERE IDLeague = ? AND IDPlayer = ?`,
             [idLeague, currentUserId]
         );
-        let betFormated = bet[0];
-        if (betFormated) {
-            if(betFormated.PredictOrder){
-                betFormated.PredictOrder = JSON.parse(betFormated.PredictOrder);
+        if (bet && bet.length > 0) {
+            let betFormated = bet[0];
+
+            // 🛡️ Salvavidas para el JSON.parse: Solo parseamos si viene como TEXTO (string)
+            if (betFormated.PredictOrder && typeof betFormated.PredictOrder === 'string') {
+                try {
+                    betFormated.PredictOrder = JSON.parse(betFormated.PredictOrder);
+                } catch (e) {
+                    console.error("Error al parsear PredictOrder String:", e);
+                    betFormated.PredictOrder = []; // Fallback seguro
+                }
             }
-            res.json(betFormated);
-        }
-        else {
-            res.status(404).json({ message: "No se encontraron ligas para este jugador" });
+
+            return res.json(betFormated);
+        } else {
+            // 🕊️ RESPUESTA LIMPIA: No tiene apuesta aún, devolvemos un 200 con la estructura base vacía.
+            // Esto evita que Angular salte al bloque 'error' y rompa la reactividad del front.
+            return res.status(200).json({
+                IDLeague: Number(idLeague),
+                IDPlayer: Number(currentUserId),
+                PredictedWinnerID: null,
+                PredictOrder: [] // Enviamos el array vacío para que el modal sepa que no hay orden previo
+            });
         }
     }
 }

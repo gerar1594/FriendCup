@@ -973,6 +973,12 @@ class MatchController {
                         [idMatch]
                     );
 
+                    let totalLocal : number = 0;
+                    let totalVisitante : number = 0;
+                    for(let juegos of resultado.periodos){
+                        totalLocal += juegos.local;
+                        totalVisitante += juegos.visitante;
+                    }
                     // Parseamos el resultado (Ejemplo esperado: "2-1" o "6-4 6-2")
                     // Adapta esta lógica exacta a cómo almacenes tú el string del resultado
                     console.log("Resultado bruto a parsear:", resultado);
@@ -994,6 +1000,13 @@ class MatchController {
                         let partidosEmpatados = 0; // Si manejas empates, ajusta esta lógica
                         const setsFavor = esLocal ? setsLocal : setsVisitante;
                         const setsContra = esLocal ? setsVisitante : setsLocal;
+                        
+                        let totalDiff = 0;
+                        if(esLocal){
+                            totalDiff = (totalLocal - totalVisitante)
+                        }else{
+                            totalDiff = (totalVisitante - totalLocal)
+                        }
 
                         if(setsFavor === setsContra) {
                             puntosARestar = 1; // En caso de empate, restamos 1 punto a ambos
@@ -1010,12 +1023,13 @@ class MatchController {
                         await connection.query(
                             `UPDATE leagueplayer
                             SET Points = Points - ?,
-                                Matches = Matches - ?,
+                                Matches = Matches - 1,
                                 Victories = Victories - ?,
                                 Defeats = Defeats - ?,
-                                Draws = Draws - ?
+                                Draws = Draws - ?,
+                                Diff = Diff - ?
                             WHERE IDLeague = ? AND IDPlayer = ?`,
-                            [puntosARestar, partidosJugados, partidosGanados, partidosPerdidos, partidosEmpatados, idLiga, player.IDPlayer]
+                            [puntosARestar, partidosGanados, partidosPerdidos, partidosEmpatados, totalDiff, idLiga, player.IDPlayer]
                         );
                     }
                 }
@@ -1245,11 +1259,11 @@ class MatchController {
 
     public async updateAndRecalculateMatch(req: Request, res: Response): Promise<any> {
         const { idMatch } = req.params;
-        const { periodos } = req.body; // Array con el nuevo marcador: [{local: 6, visitante: 4}, ...]
+        const { periodos } = req.body; // Array con el marcador: [{local: 6, visitante: 4}, ...]
         const currentUserId = req.headers['x-user-id'];
 
         if (!periodos) {
-            return res.status(400).json({ message: "El nuevo marcador (periodos) es obligatorio." });
+            return res.status(400).json({ message: "El marcador (periodos) es obligatorio." });
         }
 
         try {
@@ -1258,7 +1272,7 @@ class MatchController {
 
             try {
                 // =================================================================
-                // 1. OBTENER ESTADO ACTUAL, LIGA, CONFIGURACIÓN Y JUGADORES
+                // 1. OBTENER INFORMACIÓN DEL PARTIDO, LIGA Y JUGADORES
                 // =================================================================
                 const [matchConfig]: any = await connection.query(
                     `SELECT s.ResultadoFormat, m.Resultado, m.IDLeague, m.Estado, m.Winner, m.DayTrip, l.IDAdmin, l.Configuration,
@@ -1279,27 +1293,32 @@ class MatchController {
                 const idLiga = partido.IDLeague;
                 const configuration = JSON.parse(partido.Configuration);
 
-                // Seguridad: Solo el admin de la liga puede alterar retroactivamente un partido
-                if (partido.IDAdmin != currentUserId) {
+                // 🛑 Seguridad: Si es un partido oficial de jornada (DayTrip no es null), solo el Admin puede meter/editar resultados
+                if (partido.IDAdmin != currentUserId && partido.DayTrip != null) {
                     await connection.rollback();
-                    return res.status(403).json({ message: "Acceso denegado. Solo el administrador puede modificar el partido." });
+                    return res.status(403).json({ message: "Acceso denegado. No eres el administrador de esta liga." });
                 }
 
                 const seDebenContarPuntos = partido.DayTrip !== null || (partido.DayTrip === null && configuration.sumarJornadasExtra);
+                const esEdicionRetroactiva = partido.Estado === 'Jugado' || partido.Estado === 'Finalizado';
 
                 // =================================================================
-                // 2. REVERTIR PUNTOS Y DIFERENCIA DEL MARCADOR ANTIGUO (Si estaba 'Jugado')
+                // 2. DETECTAR SI ES EDICIÓN: REVERTIR PUNTOS Y DIFERENCIA ANTIGUA
                 // =================================================================
-                if (partido.Estado === 'Jugado' && partido.Resultado && seDebenContarPuntos) {
-                    // Obtenemos los totales antiguos guardados en el JSON o recalculados
+                if (esEdicionRetroactiva && partido.Resultado && seDebenContarPuntos) {
+                    // Parseamos el string JSON guardado en la base de datos
                     const resultadoViejo = typeof partido.Resultado === 'string' ? JSON.parse(partido.Resultado) : partido.Resultado;
 
                     const winnerViejo = Number(partido.Winner);
-                    let totalLocalViejo : number = 0;
-                    let totalVisitanteViejo : number = 0;
-                    for(let juegos of partido.Resultado.periodos){
-                        totalLocalViejo += juegos.local;
-                        totalVisitanteViejo += juegos.visitante;
+                    let totalLocalViejo = 0;
+                    let totalVisitanteViejo = 0;
+
+                    // Sumamos los juegos/goles acumulados que sumaron la última vez
+                    if (resultadoViejo && resultadoViejo.periodos) {
+                        for (let juegos of resultadoViejo.periodos) {
+                            totalLocalViejo += Number(juegos.local || 0);
+                            totalVisitanteViejo += Number(juegos.visitante || 0);
+                        }
                     }
 
                     let ptsL = 0, vicL = 0, derL = 0, empL = 0;
@@ -1316,7 +1335,7 @@ class MatchController {
                     const idsLocales = partido.LocalesIDs ? partido.LocalesIDs.split(',').map(Number) : [];
                     const idsVisitantes = partido.VisitantesIDs ? partido.VisitantesIDs.split(',').map(Number) : [];
 
-                    // Restamos estadísticas e invertimos la diferencia (Diff) restando (Local - Visitante)
+                    // Restamos las estadísticas anteriores para "limpiar" al jugador antes de meter las nuevas
                     if (idsLocales.length > 0) {
                         await connection.query(
                             `UPDATE leagueplayer
@@ -1336,7 +1355,7 @@ class MatchController {
                 }
 
                 // =================================================================
-                // 3. PARSEAR Y EVALUAR EL NUEVO MARCADOR CON EL MOTOR DE FÓRMULAS
+                // 3. PARSEAR Y EVALUAR EL NUEVO MARCADOR (Fórmulas matemáticas)
                 // =================================================================
                 const datosPeriodos = typeof periodos === 'string' ? JSON.parse(periodos) : periodos;
                 const formato = partido.ResultadoFormat;
@@ -1354,19 +1373,18 @@ class MatchController {
                 const totalLocalNuevo = Math.round(exprLocal.evaluate(variablesEntrada));
                 const totalVisitanteNuevo = Math.round(exprVisitante.evaluate(variablesEntrada));
 
-                // Estructurar el nuevo JSON de resultado
                 const nuevoMarcadorJSON = {
                     totalLocal: totalLocalNuevo,
                     totalVisitante: totalVisitanteNuevo,
                     periodos: datosPeriodos
                 };
 
-                let nuevoWinner = 3; // Empate
+                let nuevoWinner = 3; // Empate por defecto
                 if (totalLocalNuevo > totalVisitanteNuevo) nuevoWinner = 1;
                 else if (totalVisitanteNuevo > totalLocalNuevo) nuevoWinner = 2;
 
                 // =================================================================
-                // 4. GUARDAR EL NUEVO MARCADOR EN LA BASE DE DATOS
+                // 4. GUARDAR EL NUEVO RESULTADO EN EL PARTIDO
                 // =================================================================
                 await connection.query(
                     `UPDATE matches 
@@ -1376,13 +1394,12 @@ class MatchController {
                 );
 
                 // =================================================================
-                // 5. ASIGNAR LOS NUEVOS PUNTOS REUTILIZANDO TU FUNCIÓN INTERNA
+                // 5. ASIGNAR LOS NUEVOS PUNTOS ACTUALIZADOS
                 // =================================================================
                 if (seDebenContarPuntos) {
-                    // Inyectamos el nuevo ganador simulando el objeto partido para la función existente
                     partido.Winner = nuevoWinner;
 
-                    // Calculamos el sumatorio total de los "puntos de juego" (goles/puntos/juegos) del nuevo periodo
+                    // Sumatorio de los juegos totales individuales (para el Diff de Pádel/Tenis)
                     let pLocalNuevo = 0;
                     let pVisitanteNuevo = 0;
                     Object.keys(variablesEntrada).forEach(clave => {
@@ -1390,29 +1407,31 @@ class MatchController {
                         if (clave.endsWith('_v')) pVisitanteNuevo += variablesEntrada[clave];
                     });
 
-                    // Invocamos tu función común para que asigne los nuevos puntos e incremente la nueva Diff
+                    // Llamamos a tu procedimiento para insertar los nuevos puntos
                     await asignarPuntosLiga(connection, partido, { pLocal: pLocalNuevo, pVisitante: pVisitanteNuevo });
 
-                    // NOTA CRÍTICA: Como 'asignarPuntosLiga' hace internamente un "Matches = Matches + 1",
-                    // y en el paso 2 NO restamos partidos jugados (porque el partido se mantiene jugado, solo cambia el marcador),
-                    // tenemos que restarle 1 a 'Matches' para corregir el duplicado y que la estadística no se rompa:
-                    const idsTodos = [
-                        ...(partido.LocalesIDs ? partido.LocalesIDs.split(',') : []),
-                        ...(partido.VisitantesIDs ? partido.VisitantesIDs.split(',') : [])
-                    ].map(Number);
+                    // 💡 PARCHE CLAVE: Si era una EDICIÓN, como 'asignarPuntosLiga' suma obligatoriamente un partido jugado 
+                    // (Matches = Matches + 1), tenemos que restarlo para que el número de partidos no crezca infinitamente al editar.
+                    if (esEdicionRetroactiva) {
+                        const idsTodos = [
+                            ...(partido.LocalesIDs ? partido.LocalesIDs.split(',') : []),
+                            ...(partido.VisitantesIDs ? partido.VisitantesIDs.split(',') : [])
+                        ].map(Number);
 
-                    if (idsTodos.length > 0) {
-                        await connection.query(
-                            `UPDATE leagueplayer SET Matches = Matches - 1 WHERE IDLeague = ? AND IDPlayer IN (?)`,
-                            [idLiga, idsTodos]
-                        );
+                        if (idsTodos.length > 0) {
+                            await connection.query(
+                                `UPDATE leagueplayer SET Matches = Matches - 1 WHERE IDLeague = ? AND IDPlayer IN (?)`,
+                                [idLiga, idsTodos]
+                            );
+                        }
                     }
                 }
 
-                // Confirmamos la transacción
                 await connection.commit();
                 return res.status(200).json({
-                    message: "Partido modificado con éxito. Clasificación y diferencias (+/-) actualizadas.",
+                    message: esEdicionRetroactiva
+                        ? "Resultado del partido actualizado y clasificación recalculada con éxito." 
+                        : "Resultado guardado y puntos asignados con éxito.",
                     resultado: nuevoMarcadorJSON
                 });
 
@@ -1423,8 +1442,8 @@ class MatchController {
                 connection.release();
             }
         } catch (error: any) {
-            console.error("❌ Error crítico al modificar el partido retroactivamente:", error.message);
-            return res.status(500).json({ message: "Error crítico al modificar el partido: " + error.message });
+            console.error("❌ Error crítico en la gestión del resultado:", error.message);
+            return res.status(500).json({ message: "Error crítico en la gestión del resultado: " + error.message });
         }
     }
 }
@@ -1458,6 +1477,8 @@ async function asignarPuntosLiga(connection: any, partido: any, { pLocal, pVisit
 
     // A) Actualizar jugadores LOCALES
     if (idsLocales.length > 0) {
+                            console.log("ENtra")
+
         await connection.query(
             `UPDATE leagueplayer
             SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?, Diff = Diff + ?
@@ -1468,6 +1489,8 @@ async function asignarPuntosLiga(connection: any, partido: any, { pLocal, pVisit
 
     // B) Actualizar jugadores VISITANTES
     if (idsVisitantes.length > 0) {
+                            console.log("ENtra2")
+
         await connection.query(
             `UPDATE leagueplayer
             SET Points = Points + ?, Matches = Matches + 1, Victories = Victories + ?, Defeats = Defeats + ?, Draws = Draws + ?, Diff = Diff + ?
