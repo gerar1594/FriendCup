@@ -1,0 +1,19 @@
+<div class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" (click)="close()">
+  
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col h-[600px] border border-neutral-200 overflow-hidden" (click)="$event.stopPropagation()">
+        
+        <div class="p-4 bg-neutral-800 text-white font-bold flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <span>💬 Chat de Coordinación del Partido</span>
+        </div>
+        <button (click)="close()" class="text-neutral-400 hover:text-white bg-transparent border-none cursor-pointer text-xl transition-colors">
+            ✕
+        </button>
+        </div>
+
+        <div class="flex-1 overflow-hidden">
+            <app-match-chat [match]="match"></app-match-chat>
+        </div>
+
+    </div>
+</div>

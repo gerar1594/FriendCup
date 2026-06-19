@@ -6,10 +6,11 @@ import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../../services/notification/notification.service';
 import { BetsService } from '../../../services/bets/bets-service.service';
 import { DatePicker } from '../../date-picker/date-picker';
+import { MatchChatDialog } from "../match-chat-dialog/match-chat-dialog";
 
 @Component({
     selector: 'app-match-card',
-    imports: [ModifyMatchDialog, CommonModule, DatePicker],
+    imports: [ModifyMatchDialog, CommonModule, DatePicker, MatchChatDialog],
     templateUrl: './match-card.html',
     styleUrl: './match-card.scss',
 })
@@ -39,7 +40,7 @@ export class MatchCard {
     loadMatches = output<void>();
 
     showDatePicker = signal<boolean>(false);
-
+    public showChat = signal<boolean>(false);
 
     protected puedeEditar = computed(() => {
         const partido = this.match();
@@ -50,6 +51,7 @@ export class MatchCard {
         if(partido.bando === null) return false;
         return true;
     });
+
     protected confirmar = computed(() => {
         const match = this.match();
         const currentUserId = this.authService.currentUser().idPlayer; // Ajusta según cómo obtengas el ID del usuario actual
@@ -199,6 +201,12 @@ export class MatchCard {
             // Caso de emergencia por si hay algún partido antiguo en la BBDD sin inicializar
             this.formPeriodos.set([{ label: 'Goles', local: 0, visitante: 0 }]);
         }
+    }
+
+    namePlayer(){
+        let encontrado = false;
+
+        return ""
     }
 
 }

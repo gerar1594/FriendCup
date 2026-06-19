@@ -192,8 +192,8 @@
 
                             
 
-                            <button  class="flex items-center justify-end gap-2 px-3 py-2 text-neutral-700 hover:bg-neutral-50 text-left text-xs font-semibold border-none bg-transparent cursor-pointer transition-colors">
-                                Chat
+                            <button (click)="showChat.set(true)" class="flex items-center justify-end gap-2 px-3 py-2 text-neutral-700 hover:bg-neutral-50 text-left text-xs font-semibold border-none bg-transparent cursor-pointer transition-colors w-full">
+                                <span>💬 Chat del Partido</span>
                             </button>
 
                             <div class="border-t border-neutral-300 my-1"></div>
@@ -227,3 +227,11 @@
     [(isOpen)]="showDatePicker" 
     (onDateConfirmed)="handleFechaSeleccionada($event)">
 </app-date-picker>
+
+@if (showChat()) {
+    <app-match-chat-dialog
+        [match]="match()" 
+        [currentUserName]="namePlayer()" 
+        (onClose)="showChat.set(false)">
+    </app-match-chat-dialog>
+}
