@@ -43,7 +43,7 @@
                             <select name="local1" [(ngModel)]="newMatchForm.local1" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of classification(); track p.IDPlayer) {
+                                @for (p of sortedPlayers(); track p.IDPlayer) {
                                     <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
                                 }
                             </select>
@@ -53,7 +53,7 @@
                             <select name="local2" [(ngModel)]="newMatchForm.local2" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of classification(); track p.IDPlayer) {
+                                @for (p of sortedPlayers(); track p.IDPlayer) {
                                     <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
                                 }
                             </select>
@@ -67,7 +67,7 @@
                             <select name="visitante1" [(ngModel)]="newMatchForm.visitante1" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of classification(); track p.IDPlayer) {
+                                @for (p of sortedPlayers(); track p.IDPlayer) {
                                     <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
                                 }
                             </select>
@@ -77,7 +77,7 @@
                             <select name="visitante2" [(ngModel)]="newMatchForm.visitante2" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of classification(); track p.IDPlayer) {
+                                @for (p of sortedPlayers(); track p.IDPlayer) {
                                     <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
                                 }
                             </select>

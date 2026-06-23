@@ -349,7 +349,8 @@ class MatchController {
                                 (SELECT JSON_ARRAYAGG(
                                             JSON_OBJECT(
                                                 'NamePlayer', pl_loc.NamePlayer,
-                                                'NamePlayerLeague', lp_loc.NamePlayerLeague
+                                                'NamePlayerLeague', lp_loc.NamePlayerLeague,
+                                                'IDPlayer', lp_loc.IDPlayer
                                             )
                                         )
                                 FROM matchplayer mp_local
@@ -362,7 +363,8 @@ class MatchController {
                                 (SELECT JSON_ARRAYAGG(
                                             JSON_OBJECT(
                                                 'NamePlayer', pl_vis.NamePlayer,
-                                                'NamePlayerLeague', lp_vis.NamePlayerLeague
+                                                'NamePlayerLeague', lp_vis.NamePlayerLeague,
+                                                'IDPlayer', lp_vis.IDPlayer
                                             )
                                         )
                                 FROM matchplayer mp_visit
@@ -379,7 +381,7 @@ class MatchController {
                             INNER JOIN sports s ON l.IDSport = s.IDSport
                             LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ? -- ID del usuario actual
                             WHERE mp.IDPlayer = ?
-                            ORDER BY m.DayTrip ASC, m.Estado DESC;`
+                            ORDER BY l.NameLeague,m.DayTrip ASC, m.Estado DESC;`
 
             /*console.log("================== QUERY EJECUTADA ==================");
             console.log(pool.format(querySql, [idPlayer]));
@@ -422,7 +424,8 @@ class MatchController {
 
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT(
                     'NamePlayer', pl_loc.NamePlayer,
-                    'NamePlayerLeague', lp_loc.NamePlayerLeague
+                    'NamePlayerLeague', lp_loc.NamePlayerLeague,
+                    'IDPlayer', lp_loc.IDPlayer
                 ))
                 FROM matchplayer mp_local
                 JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
@@ -434,7 +437,8 @@ class MatchController {
                 -- 🏃‍♂️ Apodos/Nombres de los jugadores Visitantes de este partido
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT(
                     'NamePlayer', pl_vis.NamePlayer,
-                    'NamePlayerLeague', lp_vis.NamePlayerLeague
+                    'NamePlayerLeague', lp_vis.NamePlayerLeague,
+                    'IDPlayer', lp_vis.IDPlayer
                 ))
                 FROM matchplayer mp_visit
                 JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
@@ -501,7 +505,8 @@ class MatchController {
 
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT(
                     'NamePlayer', pl_loc.NamePlayer,
-                    'NamePlayerLeague', lp_loc.NamePlayerLeague
+                    'NamePlayerLeague', lp_loc.NamePlayerLeague,
+                    'IDPlayer', lp_loc.IDPlayer
                 ))
                 FROM matchplayer mp_local
                 JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
@@ -513,7 +518,8 @@ class MatchController {
                 -- 🏃‍♂️ Apodos/Nombres de los jugadores Visitantes de este partido
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT(
                     'NamePlayer', pl_vis.NamePlayer,
-                    'NamePlayerLeague', lp_vis.NamePlayerLeague
+                    'NamePlayerLeague', lp_vis.NamePlayerLeague,
+                    'IDPlayer', lp_vis.IDPlayer
                 ))
                 FROM matchplayer mp_visit
                 JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer

@@ -14,7 +14,7 @@ import { BetsService } from '../../../services/bets/bets-service.service';
 import { PredictionModalComponent } from '../../prediction-modal/prediction-modal';
 import { PredictionModalView } from '../../prediction-modal-view/prediction-modal-view';
 
-type LeagueTab = 'clasificacion' | 'jornadas' | 'extras';
+type LeagueTab = 'clasificacion' | 'jornadas' | 'extras' | 'filtro';
 @Component({
     selector: 'app-league',
     imports: [MatchCard, CommonModule, Clasification, AddMatchModal, PredictionModalComponent, PredictionModalView], // Añadido CommonModule por si usas directivas básicas
@@ -39,6 +39,22 @@ export class League implements OnInit {
 
     leagueData = signal<any>(null);
     classification = signal<any[]>([]);
+
+    sortedPlayers = computed(() => {
+        const players = this.classification(); // Asumiendo que classification es una Signal
+        
+        if (!players) return [];
+
+        // Creamos una copia del array antes de ordenar (.slice() o [...spread])
+        return [...players].sort((a, b) => {
+            const nameA = a.NamePlayerLeague || a.NamePlayer || '';
+            const nameB = b.NamePlayerLeague || b.NamePlayer || '';
+            
+            // El método localeCompare ordena correctamente ignorando mayúsculas/minúsculas y tildes
+            return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+        });
+    });
+
     betData = signal<any>(null)
     protected matches = signal<any[]>([]);
     protected matchesExtra = signal<any[]>([]);
@@ -50,6 +66,14 @@ export class League implements OnInit {
     isMatchModalOpen = signal<boolean>(false);
     public isPredictionModalOpen = signal<boolean>(false);
     public isPredictionModalViewOpen = signal<boolean>(false);
+
+    selectedPlayerId = signal<string>('');
+
+    // Manejador del cambio en el select
+    onPlayerFilterChange(event: Event): void {
+        const target = event.target as HTMLSelectElement;
+        this.selectedPlayerId.set(target.value);
+    }
 
 
     // Función auxiliar para agrupar los partidos por Jornada en el HTML
@@ -346,6 +370,26 @@ export class League implements OnInit {
         }
     }
 
+    onResetMatches() {
+        const confirmar = confirm('⚠️ ¿CUIDADO! ¿Estás completamente seguro de que quieres reiniciar los marcadores de la liga? Esto borrará TODOS los resultados introducidos y pondrá la clasificación a 0. Esta acción no se puede deshacer.');
+        
+        if (confirmar) {
+            const idLeague = this.idLeague();
+            
+            this.leaguesService.resetLeagueMatches(idLeague).subscribe({
+                next: (res: any) => {
+                    this.notifService.show(res.message || 'Los partidos de la liga se ha reiniciado correctamente. 🔄', 'success');
+                    // Forzamos la recarga de datos para limpiar el calendario y actualizar la tabla en la vista
+                    this.loadLeagueData(); 
+                },
+                error: (err) => {
+                    console.error(err);
+                    this.notifService.show(err.error?.message || 'Error al reiniciar los partidos de la liga', 'error');
+                }
+            });
+        }
+    }
+
     /**
      * Se ejecuta al cambiar el selector para guardar el voto en la base de datos
      */
@@ -423,5 +467,45 @@ export class League implements OnInit {
         }else{
             this.isPredictionModalViewOpen.set(true);
         }
+    }
+    
+    shouldShowMatch(match: any): boolean {
+        const filterId = this.selectedPlayerId();
+
+        // Si no hay filtro seleccionado, mostramos todos los partidos
+        if (!filterId) {
+        return true;
+        }
+        let find = false;
+
+        for(let player of match.JugadoresLocalNames){
+            if(player.IDPlayer == filterId){
+                return true;
+            }
+        }
+
+        for(let player of match.JugadoresVisitanteNames){
+            if(player.IDPlayer == filterId){
+                return true;
+            }
+        }
+        // Comprobamos si el ID seleccionado coincide con alguno de los participantes del partido.
+        // IMPORTANTE: Revisa los campos reales de tu objeto "match" (ej: match.IDPlayer1, match.players, etc.)
+        return (
+        match.IDPlayer === filterId || 
+        match.IDPlayer1 === filterId || 
+        match.IDPlayer2 === filterId || 
+        match.IDPlayer3 === filterId || 
+        match.IDPlayer4 === filterId
+        );
+    }
+
+
+    public filter(idPlayer: string): any[]{
+        let matchesFiltered: any[] = []
+
+
+
+        return matchesFiltered
     }
 }

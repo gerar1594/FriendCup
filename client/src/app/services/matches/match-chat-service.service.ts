@@ -50,6 +50,10 @@ export class MatchChatService {
         return this.http.get<any[]>(`${this.API_URL}/${matchId}`);
     }
 
+    getProposalDates(matchId: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.API_URL}/dates/${matchId}`);
+    }
+
     /**
      * Enviar mensaje común de texto:
      * Guarda por HTTP POST y luego emite por WebSockets

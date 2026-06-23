@@ -22,16 +22,21 @@
                         (dragstart)="onDragStart(idx)"
                         (dragover)="onDragOver($event, idx)"
                         (dragend)="onDragEnd()"
-                        class="flex items-center gap-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl cursor-grab active:cursor-grabbing transition-all select-none group"
+                        
+                        (touchstart)="onTouchStart(idx)"
+                        (touchmove)="onTouchMove($event, idx)"
+                        (touchend)="onTouchEnd()"
+                        
+                        class="flex items-center gap-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl cursor-grab active:cursor-grabbing transition-all select-none group touch-none"
                         [ngClass]="{'opacity-40 border-dashed border-blue-400 bg-blue-50/30': draggedIndex === idx}"
                     >
                         <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
-                              [ngClass]="{
-                                  'bg-amber-100 text-amber-700': idx === 0,
-                                  'bg-neutral-200 text-neutral-700': idx === 1,
-                                  'bg-orange-100 text-orange-700': idx === 2,
-                                  'bg-neutral-200/50 text-neutral-500': idx > 2
-                              }">
+                            [ngClass]="{
+                                'bg-amber-100 text-amber-700': idx === 0,
+                                'bg-neutral-200 text-neutral-700': idx === 1,
+                                'bg-orange-100 text-orange-700': idx === 2,
+                                'bg-neutral-200/50 text-neutral-500': idx > 2
+                            }">
                             {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1 }}
                         </span>
 

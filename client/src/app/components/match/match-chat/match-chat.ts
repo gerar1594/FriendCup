@@ -15,6 +15,7 @@ import { NotificationService } from '../../../services/notification/notification
 export class MatchChat implements OnInit, OnDestroy {
     @Input() match!: any;
     messages = signal<any[]>([]);
+    proposalDate = signal<any[]>([])
     textInput = '';
     dateInput = ''; // Enlazado al input datetime-local
 
@@ -30,6 +31,13 @@ export class MatchChat implements OnInit, OnDestroy {
     })
 
     private subs: Subscription = new Subscription();
+
+    showProposalsPanel = false;
+
+    // 2. Un computed eficiente para tener siempre la lista de propuestas actualizada
+    allProposals = computed(() => {
+        return this.proposalDate();
+    });
 
     constructor(private chatService: MatchChatService) {}
 
@@ -54,6 +62,24 @@ export class MatchChat implements OnInit, OnDestroy {
                     }
                 }
                 this.scrollToBottom();
+            },
+            error: (err) => console.error('Error al cargar histórico:', err)
+        });
+
+         this.chatService.getProposalDates(this.match.IDMatch).subscribe({
+            next: (history) => {
+                this.proposalDate.set(history);
+                for(let message of this.proposalDate()){
+                    if(message.IDPlayer == this.currentUserId){
+                        this.currentUserName = message.userName;
+                    }
+                    for(let vote of message.votes){
+                        if(vote.IDPlayer == this.currentUserId){
+                            break;
+                        }
+                    }
+                    
+                }
             },
             error: (err) => console.error('Error al cargar histórico:', err)
         });
@@ -130,6 +156,9 @@ export class MatchChat implements OnInit, OnDestroy {
         const box = document.getElementById('chat-box');
         if(box) box.scrollTop = box.scrollHeight;
         }, 50);
+    }
+    toggleProposalsPanel() {
+        this.showProposalsPanel = !this.showProposalsPanel;
     }
 
     ngOnDestroy() {

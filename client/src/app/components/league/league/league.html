@@ -140,6 +140,12 @@
                         Guardar Configuración
                     </button>
                     <button 
+                        (click)="onResetMatches()"
+                        class="mt-4 ml-4 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer" >
+                        Reiniciar Marcadores
+                    </button>
+
+                    <button 
                         (click)="onReset()"
                         class="mt-4 ml-4 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer" >
                         Reiniciar Liga
@@ -169,6 +175,12 @@
                     🗓️ Jornadas extra
                 </button>
             }
+            <button
+                (click)="activeTab.set('filtro')"
+                [ngClass]="activeTab() === 'filtro' ? 'border-blue-500 text-blue-600 font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'"
+                class="py-3 px-6 border-b-2 text-sm font-medium transition-all cursor-pointer flex items-center gap-2 outline-none">
+                🗓️ Filtro
+            </button>
 
         </div>
 
@@ -286,6 +298,57 @@
                             (loadMatches)="loadLeagueData()">
                         </app-match-card>
                     }
+                </div>
+            }
+
+            @if (activeTab() === 'filtro') {
+                <div class="animate-in fade-in duration-200 flex flex-col gap-6">
+        
+                <div class="bg-neutral-50 border border-neutral-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center gap-4 shadow-xs">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto min-w-[250px]">
+                        <label for="playerFilter" class="text-xs font-semibold text-neutral-500">Filtrar partidos por Jugador:</label>
+                        <select 
+                            id="playerFilter" 
+                            (change)="onPlayerFilterChange($event)"
+                            class="p-2.5 rounded-lg border border-neutral-300 bg-white text-sm text-neutral-800 outline-none cursor-pointer focus:border-blue-500 transition-colors"
+                        >
+                            <option value="">-- Mostrar todos los jugadores --</option>
+                            @for (player of sortedPlayers(); track player.IDPlayer) {
+                                <option [value]="player.IDPlayer">
+                                    {{ player.NamePlayerLeague || player.NamePlayer }}
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6">
+                    
+                    @for (match of matches(); track match.IDMatch) {
+                        @if (shouldShowMatch(match)) {
+                            <app-match-card 
+                                [adminMode]="adminMode()"
+                                [match]="match" 
+                                [showDatails]="true"
+                                [namePlayerLeague]="true"
+                                (loadMatches)="loadLeagueData()">
+                            </app-match-card>
+                        }
+                    }
+
+                    @for (match of matchesExtra(); track match.IDMatch) {
+                        @if (shouldShowMatch(match)) {
+                            <app-match-card 
+                                [adminMode]="adminMode()"
+                                [match]="match" 
+                                [showDatails]="false"
+                                [namePlayerLeague]="true"
+                                (loadMatches)="loadLeagueData()">
+                            </app-match-card>
+                        }
+                    }
+                </div>
+
                 </div>
             }
 

@@ -24,6 +24,7 @@ class LeaguesRoutes{
         this.router.delete('/delete-like/:idleague', leaguesController.deleteLike);
         this.router.get('/:idleague/players', leaguesController.listPlayers);
         this.router.post('/:idleague/reset', leaguesController.resetLeague);
+        this.router.post('/:idleague/reset-matches', leaguesController.resetLeagueMatches);
         this.router.get('/:idleague', leaguesController.get);
 
 

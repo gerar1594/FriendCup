@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatchesService } from '../../../services/matches/matches-service.service';
 import { AuthService } from '../../../services/auth/auth.service';
@@ -20,6 +20,30 @@ export class MyMatches {
     protected selectedMatch = signal<any>(null);
     protected useNamePlayerLeague = signal<boolean>(false);
 
+    selectedLeague = signal<string>('');
+
+    uniqueLeagues = computed(() => {
+        const matches = this.myMatches(); // Asumiendo que myMatches es una Signal
+        // Extraemos todos los NameLeague, filtramos los vacíos y eliminamos duplicados con Set
+        
+        const leagues = matches
+            .map((match: any) => match.NameLeague)
+            .filter((name: string) => !!name);
+        
+        return Array.from(new Set(leagues)).sort();
+    });
+
+    // 3. Computed para obtener los partidos ya filtrados dinámicamente
+    filteredMatches = computed(() => {
+        const matches = this.myMatches();
+        const filter = this.selectedLeague();
+        if (!filter) {
+            return matches; // Si no hay filtro, devolvemos todos
+        }
+
+        return matches.filter((match: any) => match.NameLeague === filter);
+    });
+
     // Variables vinculadas al formulario del Modal
     protected formPeriodos = signal<any[]>([]);
 
@@ -36,6 +60,10 @@ export class MyMatches {
 
     // 🚀 Al abrir el modal, el partido ya trae su estructura desde la BBDD
     
+    onLeagueFilterChange(event: Event): void {
+        const target = event.target as HTMLSelectElement;
+        this.selectedLeague.set(target.value);
+    }
 
     // Enviar los datos editados al servidor
     saveResult() {

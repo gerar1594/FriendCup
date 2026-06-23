@@ -1,16 +1,30 @@
 <div class="p-8 max-w-[1200px] my-0 mx-auto font-sans fe">
-    <div class="flex items-center gap-4 mb-4">
-        <h1 class="text-neutral-900 text-3xl font-bold mb-8">🗓️ Mis Partidos Clasificatorios</h1>
-        <div class="mb-6 flex items-center gap-4">
+    <div class="flex items-center gap-4 mb-4 flex-wrap mb-8">
+        <h1 class="text-neutral-900 text-3xl font-bold">🗓️ Mis Partidos Clasificatorios</h1>
+        <div class=" flex items-center gap-4">
             <label class="inline-flex items-center gap-2 text-sm text-neutral-700">
                 <input type="checkbox" class="form-checkbox" [(ngModel)]="useNamePlayerLeague">
-                Mostrar Nombre de la Liga
+                Mostrar Nombre del Usuario de la Liga
             </label>
         </div>
+        <div class="flex items-center gap-2 w-full">
+            <label for="leagueFilterSelect" class="text-sm font-semibold text-neutral-600">Liga:</label>
+            <select 
+                id="leagueFilterSelect" 
+                (change)="onLeagueFilterChange($event)"
+                class="p-2 rounded-lg border border-neutral-800 bg-white text-sm text-neutral-800 outline-none cursor-pointer focus:border-blue-500 transition-colors"
+            >
+                <option value="">-- Todas las ligas --</option>
+                @for (league of uniqueLeagues(); track league) {
+                    <option [value]="league">{{ league }}</option>
+                }
+            </select>
+        </div>
     </div>
+    
 
     <div class="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6">
-        @for (match of myMatches(); track match.IDMatch) {
+        @for (match of filteredMatches(); track match.IDMatch) {
             <app-match-card 
                 [match]="match" 
                 [showDatails]="true"
@@ -18,6 +32,10 @@
                 (openEditModal)="selectedMatch.set($event)"
                 (loadMatches)="loadUserMatches()">
             </app-match-card>
+        } @empty {
+            <div class="col-span-full text-center py-12 bg-neutral-50 rounded-lg border border-dashed border-neutral-200 text-neutral-500 text-sm">
+                No tienes partidos registrados para la liga seleccionada.
+            </div>
         }
     </div>
 </div>

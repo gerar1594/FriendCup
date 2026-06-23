@@ -12,6 +12,7 @@ class MessageRoutes {
 
     config(): void {
 
+        this.router.get('/dates/:id', messageController.getProposalDates);
         this.router.get('/:id', messageController.getMatchMessages);
         this.router.post('/:id', messageController.saveMatchMessage);
         this.router.post('/vote/:messageId', messageController.toggleMessageVote);

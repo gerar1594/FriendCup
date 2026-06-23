@@ -641,6 +641,79 @@ class LeaguesController{
         }
     };
 
+    public async resetLeagueMatches(req: Request, res: Response): Promise<void> {
+        const { idleague } = req.params;
+        const currentUserId = req.headers['x-user-id'];
+        const connection = await pool.getConnection();
+        try {
+            
+            await connection.beginTransaction();
+
+            try {
+                // 1. Validamos que el usuario que hace la petición es el admin de la liga
+                const [liga]: any = await connection.query(
+                    "SELECT IDAdmin FROM leagues WHERE IDLeague = ?",
+                    [idleague]
+                );
+                if (liga.length === 0) {
+                    await connection.rollback();
+                    res.status(404).json({ message: "La liga no existe." });
+                }
+                if (liga[0].IDAdmin !== Number(currentUserId)) {
+                    await connection.rollback();
+                    res.status(403).json({ message: "No tienes permisos para modificar esta liga." });
+                    throw new Error("Permisos insuficientes para reiniciar la liga."); // Lanzamos un error para salir del flujo
+                }
+            } catch (err) {
+                throw err;
+            }
+
+            // 1. Opcional: Validar si el usuario actual es el ADMIN de la liga (Seguridad extra)
+            // const idUser = req.user.id; // Si usas middleware de autenticación
+
+            // 2. Borramos todos los partidos asociados a la liga
+            // Nota: Si tu tabla 'matches_sets' o similar tiene ON DELETE CASCADE, se borrarán solos.
+            // Si no, borra primero los sets/detalles y luego los partidos.
+            console.log(`🔄 Reiniciando partidos de la liga ID: ${idleague} - Reseteando partidos existentes...`);
+            await connection.query(
+                "UPDATE matches SET Resultado = DEFAULT, Estado = 'Pendiente', Winner = NULL, sumado = 0, Fecha = '0000-00-00 00:00:00' WHERE IDLeague = ?",
+                [idleague]
+            );
+
+            // 3. Opcional: Si tienes una tabla intermedia de inscripciones donde guardas los puntos 
+            // acumulados de cada jugador de forma estática (ej: points, victories, defeats...), los reiniciamos a 0.
+            await connection.query(
+                `UPDATE leagueplayer
+                SET Points = 0, Matches = 0, Victories = 0, Defeats = 0, Draws = 0, DIff = 0
+                WHERE IDLeague = ?`,
+                [idleague]
+            );
+
+            // 4. Cambiamos el estado de la liga de nuevo a 'Abierta' o lo mantenemos en base a tu flujo
+            await connection.query(
+                "UPDATE leagues SET Estado = 'Abierta' WHERE IDLeague = ?",
+                [idleague]
+            );
+
+            // Confirmamos todos los cambios en la base de datos
+            await connection.commit();
+
+            res.status(200).json({
+                message: 'La liga se ha reiniciado con éxito. Se han eliminado todos los partidos y las clasificaciones vuelven a estar a cero.'
+            });
+
+        } catch (error: any) {
+            // Si algo falla, cancelamos todo el borrado para no dejar datos huérfanos
+            await connection.rollback();
+            console.error('❌ Error al reiniciar la liga:', error);
+            res.status(500).json({
+                message: 'Error interno del servidor al intentar reiniciar la liga.'
+            });
+        } finally {
+            connection.release(); // Devolvemos la conexión al pool
+        }
+    };
+
     public async updateNamePlayerLeague(req: Request, res: Response): Promise<void> {
         const { idLeague, newName } = req.body;
         const currentUserId = req.headers['x-user-id'];

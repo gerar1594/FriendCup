@@ -105,6 +105,9 @@ export class LeaguesService {
     resetLeague(idLeague: number): Observable<any> {
         return this.http.post(`${this.API_URL}/${idLeague}/reset`, {});
     }
+    resetLeagueMatches(idLeague: number): Observable<any> {
+        return this.http.post(`${this.API_URL}/${idLeague}/reset-matches`, {});
+    }
 
     updateNamePlayerLeague(idLeague: number, newName: string): Observable<any> {
         return this.http.post(`${this.API_URL}/update-name-player-league`, { idLeague, newName });

@@ -17,11 +17,47 @@ class MessageController{
                 LEFT JOIN matches mat ON m.IDMatch = mat.IDMatch  -- 👈 1. Unimos con la tabla de partidos para saber la liga
                 LEFT JOIN players p ON m.IDPlayer = p.IDPlayer
                 LEFT JOIN leagueplayer lp ON m.IDPlayer = lp.IDPlayer AND mat.IDLeague = lp.IDLeague -- 👈 2. Filtramos por jugador Y por la misma liga
-                WHERE m.IDMatch = ? 
+                WHERE m.IDMatch = ? AND m.type = 'text'
                 ORDER BY m.timestamp ASC
             `;
             const [messages] : any[] = await pool.query(query, [id]);
-            
+            // Buscamos los votos de las propuestas (Igual que antes)
+            if(messages.length > 0){
+                for (let msg of messages) {
+                    if (msg.type === 'proposal') {
+                        const [votes]: any[] = await pool.query('SELECT IDPlayer FROM message_votes WHERE IDMessage = ?', [msg.IDMessage]);
+                        msg.votes = votes;
+                    } else {
+                        msg.votes = [];
+                    }
+                }
+                
+                res.json(messages);
+            }
+            else{
+                res.json(null)
+            }
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ text: 'Error al obtener los mensajes' });
+        }
+    }
+
+    public async getProposalDates(req: Request, res: Response): Promise<void> {
+        const { id } = req.params; // idMatch
+        const currentUserId = req.headers['x-user-id'];
+        try {
+            // 👈 Hacemos el JOIN para traernos el nombre real y actualizado del jugador
+            const query = `
+                SELECT m.*, lp.NamePlayerLeague AS userNameLeague, p.NamePlayer AS userName
+                FROM match_messages m
+                LEFT JOIN matches mat ON m.IDMatch = mat.IDMatch  -- 👈 1. Unimos con la tabla de partidos para saber la liga
+                LEFT JOIN players p ON m.IDPlayer = p.IDPlayer
+                LEFT JOIN leagueplayer lp ON m.IDPlayer = lp.IDPlayer AND mat.IDLeague = lp.IDLeague -- 👈 2. Filtramos por jugador Y por la misma liga
+                WHERE m.IDMatch = ? AND m.Type = 'proposal'
+                ORDER BY m.timestamp ASC
+            `;
+            const [messages] : any[] = await pool.query(query, [id]);
             // Buscamos los votos de las propuestas (Igual que antes)
             if(messages.length > 0){
                 for (let msg of messages) {

@@ -82,6 +82,55 @@ export class PredictionModalComponent {
         this.draggedIndex = null;
     }
 
+
+    onTouchStart(index: number): void {
+        // Al tocar la pantalla, reutilizamos tu lógica existente de DragStart
+        this.onDragStart(index); 
+    }
+
+    onTouchMove(event: TouchEvent, currentIndex: number): void {
+        // Evitamos que el navegador haga scroll vertical
+        if (event.cancelable) {
+            event.preventDefault();
+        }
+
+        // Obtenemos las coordenadas exactas de dónde está el dedo actualmente
+        const touch = event.touches[0];
+        
+        // Buscamos cuál es el elemento del DOM que está justo debajo del dedo
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!targetElement) return;
+
+        // Encontramos la tarjeta contenedora que tiene el bucle de Angular más cercana
+        const itemContainer = targetElement.closest('[draggable="true"]');
+        if (!itemContainer) return;
+
+        // Buscamos todas las tarjetas para saber el índice de la tarjeta sobre la que estamos pasando
+        const allItems = Array.from(itemContainer.parentNode?.children || []);
+        const targetIndex = allItems.indexOf(itemContainer);
+
+        // Si el dedo se ha movido a una posición válida y distinta, reorganizamos la lista
+        if (targetIndex !== -1 && targetIndex !== currentIndex) {
+            const list = [...this.editableList()];
+            const draggedIdx = this.draggedIndex; // Tu variable actual que guarda el index original
+
+            if (draggedIdx !== null && draggedIdx !== undefined) {
+            // Extraemos el jugador arrastrado y lo insertamos en el nuevo hueco
+            const [removed] = list.splice(draggedIdx, 1);
+            list.splice(targetIndex, 0, removed);
+            
+            // Actualizamos tu lista (Signal) y refrescamos el índice que se está moviendo
+            this.editableList.set(list);
+            this.draggedIndex = targetIndex; 
+            }
+        }
+    }
+
+    onTouchEnd(): void {
+        // Al levantar el dedo del móvil, ejecutamos la misma limpieza de DragEnd
+        this.onDragEnd();
+    }
+
     // --- GUARDADO ---
 
     guardarPorra() {

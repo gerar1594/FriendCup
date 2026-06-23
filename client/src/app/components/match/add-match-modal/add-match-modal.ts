@@ -1,4 +1,4 @@
-import { Component, inject, input, model, OnInit, output } from '@angular/core';
+import { Component, computed, inject, input, model, OnInit, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../services/notification/notification.service'; // Ajusta la ruta
@@ -18,6 +18,21 @@ export class AddMatchModal{
     idLeague = input.required<number>();
     classification = input.required<any[]>();
     jornadas = input.required<number[]>();
+
+    sortedPlayers = computed(() => {
+        const players = this.classification(); // Asumiendo que classification es una Signal
+        
+        if (!players) return [];
+
+        // Creamos una copia del array antes de ordenar (.slice() o [...spread])
+        return [...players].sort((a, b) => {
+            const nameA = a.NamePlayerLeague || a.NamePlayer || '';
+            const nameB = b.NamePlayerLeague || b.NamePlayer || '';
+            
+            // El método localeCompare ordena correctamente ignorando mayúsculas/minúsculas y tildes
+            return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+        });
+    });
 
     onSaved = output<void>();
 
