@@ -17,7 +17,7 @@ class MessageController{
                 LEFT JOIN matches mat ON m.IDMatch = mat.IDMatch  -- 👈 1. Unimos con la tabla de partidos para saber la liga
                 LEFT JOIN players p ON m.IDPlayer = p.IDPlayer
                 LEFT JOIN leagueplayer lp ON m.IDPlayer = lp.IDPlayer AND mat.IDLeague = lp.IDLeague -- 👈 2. Filtramos por jugador Y por la misma liga
-                WHERE m.IDMatch = ? AND m.type = 'text'
+                WHERE m.IDMatch = ?
                 ORDER BY m.timestamp ASC
             `;
             const [messages] : any[] = await pool.query(query, [id]);
@@ -99,7 +99,7 @@ class MessageController{
             };
             
             // Insertamos en BD (Sin la columna userName)
-            const result : any = await pool.query('INSERT INTO match_messages SET ?', [newMessage]);
+            const [result] : any = await pool.query('INSERT INTO match_messages SET ?', [newMessage]);
             
             // Devolvemos el objeto a Angular incluyendo el 'userName' en caliente 
             // para que el Socket lo propague y se pinte al instante en las pantallas

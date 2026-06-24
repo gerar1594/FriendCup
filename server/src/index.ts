@@ -110,7 +110,8 @@ class Server{
                 console.log("Retransmitiendo mensaje a la sala:", `match_${newMessage.IDMatch}`);
                     
                 // Emitimos una ÚNICA VEZ a la sala privada
-                this.io.to(`match_${newMessage.IDMatch}`).emit('receive_message', newMessage);            });
+                this.io.to(`match_${newMessage.IDMatch}`).emit('receive_message', newMessage);            
+            });
 
             // 3. Votar en una fecha propuesta existente
             socket.on('vote_date', async (data: { IDMatch: string, messageId: string, userId: string }) => {

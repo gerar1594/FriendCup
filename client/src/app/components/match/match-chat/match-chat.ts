@@ -6,10 +6,11 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/auth/auth.service';
 import { MatchesService } from '../../../services/matches/matches-service.service';
 import { NotificationService } from '../../../services/notification/notification.service';
+import { DatePicker } from "../../date-picker/date-picker";
 
 @Component({
     selector: 'app-match-chat',
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, DatePicker],
     templateUrl: './match-chat.html'
 })
 export class MatchChat implements OnInit, OnDestroy {
@@ -18,6 +19,8 @@ export class MatchChat implements OnInit, OnDestroy {
     proposalDate = signal<any[]>([])
     textInput = '';
     dateInput = ''; // Enlazado al input datetime-local
+    showDatePicker = signal<boolean>(false);
+
 
     private authService = inject(AuthService);
     private matchesService = inject(MatchesService);
@@ -26,9 +29,9 @@ export class MatchChat implements OnInit, OnDestroy {
 
     currentUserId = this.authService.currentUser().idPlayer; 
     currentUserName: string = "";
-    isVoted = computed(() => {
-        
-    })
+
+
+    myScheduledMatches = signal<any[]>([]);
 
     private subs: Subscription = new Subscription();
 
@@ -39,7 +42,9 @@ export class MatchChat implements OnInit, OnDestroy {
         return this.proposalDate();
     });
 
-    constructor(private chatService: MatchChatService) {}
+    constructor(private chatService: MatchChatService) {
+        this.loadUserSchedule();
+    }
 
     ngOnInit() {
         this.chatService.joinRoom(this.match.IDMatch);
@@ -49,11 +54,41 @@ export class MatchChat implements OnInit, OnDestroy {
             next: (history) => {
                 this.messages.set(history);
                 console.log(this.messages())
+                let auxProposalDate = [];
+                let find = false;
                 for(let message of this.messages()){
                     if(message.IDPlayer == this.currentUserId){
                         this.currentUserName = message.userName;
                     }
                     if(message.type == 'proposal'){
+                        auxProposalDate.push(message);
+                        /*for(let vote of message.votes){
+                            if(vote.IDPlayer == this.currentUserId){
+                                break;
+                            }
+                        }*/
+                    }
+                }
+                this.proposalDate.set(auxProposalDate)
+                this.scrollToBottom();
+            },
+            error: (err) => console.error('Error al cargar histórico:', err)
+        });
+
+        /*this.chatService.getProposalDates(this.match.IDMatch).subscribe({
+            next: (history) => {
+                // 1. Guardamos el historial en el signal primero
+                this.proposalDate.set(history || []);
+                
+                // 2. ERROR CORREGIDO: Iteramos sobre 'history', NO sobre el signal 'this.proposalDate()'
+                if (history && Array.isArray(history)) {
+                    for(let message of history){
+                        if(message.IDPlayer == this.currentUserId){
+                            this.currentUserName = message.userName;
+                        }
+                        // Si 'votes' viene null de base de datos, lo inicializamos como array vacío para evitar romper el bucle inferior
+                        if(!message.votes) message.votes = [];
+                        
                         for(let vote of message.votes){
                             if(vote.IDPlayer == this.currentUserId){
                                 break;
@@ -61,28 +96,9 @@ export class MatchChat implements OnInit, OnDestroy {
                         }
                     }
                 }
-                this.scrollToBottom();
             },
             error: (err) => console.error('Error al cargar histórico:', err)
-        });
-
-         this.chatService.getProposalDates(this.match.IDMatch).subscribe({
-            next: (history) => {
-                this.proposalDate.set(history);
-                for(let message of this.proposalDate()){
-                    if(message.IDPlayer == this.currentUserId){
-                        this.currentUserName = message.userName;
-                    }
-                    for(let vote of message.votes){
-                        if(vote.IDPlayer == this.currentUserId){
-                            break;
-                        }
-                    }
-                    
-                }
-            },
-            error: (err) => console.error('Error al cargar histórico:', err)
-        });
+        });*/
 
         // 3. Escuchamos el socket de forma directa
         this.chatService.getMessages().subscribe((msg) => {
@@ -116,6 +132,18 @@ export class MatchChat implements OnInit, OnDestroy {
         );
     }
 
+    loadUserSchedule() {
+        // Aquí llamas al endpoint o servicio que te traiga todos los partidos organizados de este jugador
+        this.matchesService.getMatchesByUser(this.currentUserId).subscribe({
+            next: (matches) => {
+                // Filtramos para quedarnos solo con los partidos que ya tienen una fecha asignada/confirmada
+
+                const scheduled = matches.userMatches.filter((m: { Fecha: any; }) => m.Fecha);
+                this.myScheduledMatches.set(scheduled);
+            }
+        });
+    }
+
     sendText() {
         if (!this.textInput.trim()) return;
         // El servicio se encarga de hacer el POST y mandar el Socket solo si la BBDD responde OK
@@ -126,8 +154,9 @@ export class MatchChat implements OnInit, OnDestroy {
     proposeDate() {
         if (!this.dateInput) return;
         const selectedDate = new Date(this.dateInput);
-        this.chatService.sendDateProposal(this.match.IDMatch, selectedDate);
+        this.chatService.sendDateProposal(this.match.IDMatch, selectedDate)
         this.dateInput = ''; // Limpiar campo fecha
+
     }
 
     toggleVote(messageId: string) {
@@ -159,6 +188,50 @@ export class MatchChat implements OnInit, OnDestroy {
     }
     toggleProposalsPanel() {
         this.showProposalsPanel = !this.showProposalsPanel;
+    }
+
+    handleFechaSeleccionada(fechaHora: string) {
+        console.log('Fecha recibida del componente hijo:', fechaHora);
+        this.dateInput = fechaHora;
+        /*this.match.Fecha = fechaHora;
+
+        this.matchesService.setFecha(this.match.IDMatch, {fecha : fechaHora}).subscribe({
+            next: (res) => {
+                this.notificationService.show(res.message, 'success');
+            },
+            error: (err) => this.notificationService.show(err.message, 'error')
+        });*/
+        // Aquí ejecutas tu servicio HTTP para guardar la fecha en tu base de datos Node/MySQL
+    }
+
+    checkDateConflict(proposalDateStr: string): 'none' | 'warning' | 'danger' {
+        if (!proposalDateStr || this.myScheduledMatches().length === 0) return 'none';
+
+        const proposalDate = new Date(proposalDateStr);
+        
+        // Ignoramos el propio partido actual para que no se autodetecte conflicto consigo mismo
+        const otherMatches = this.myScheduledMatches().filter(m => m.IDMatch !== this.match.IDMatch);
+
+        let conflict: 'none' | 'warning' | 'danger' = 'none';
+        for (const bookedMatch of otherMatches) {
+            const bookedDate = new Date(bookedMatch.Fecha);
+
+            // 1. Comprobación de hora exacta (mismo año, mes, día, hora y minutos)
+            if (proposalDate.getTime() === bookedDate.getTime()) {
+                return 'danger'; // Conflicto crítico (misma hora) -> Prioridad máxima, rompe el bucle
+            }
+
+            // 2. Comprobación de mismo día (año, mes, día coinciden)
+            const sameDay = proposalDate.getFullYear() === bookedDate.getFullYear() &&
+                            proposalDate.getMonth() === bookedDate.getMonth() &&
+                            proposalDate.getDate() === bookedDate.getDate();
+
+            if (sameDay) {
+                conflict = 'warning'; // Mismo día, pero diferente hora -> Sigue buscando por si hay uno a la misma hora
+            }
+        }
+
+        return conflict;
     }
 
     ngOnDestroy() {

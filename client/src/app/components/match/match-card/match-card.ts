@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../../services/auth/auth.service';
 import { ModifyMatchDialog } from "../modify-match-dialog/modify-match-dialog";
 import { MatchesService } from '../../../services/matches/matches-service.service';
@@ -32,6 +32,7 @@ export class MatchCard {
     private authService = inject(AuthService);
 
     isModify = signal<boolean>(false);
+    isOpenMenu = signal<boolean>(false);
 
     private userId = this.authService.currentUser()?.idPlayer;
 
@@ -200,6 +201,18 @@ export class MatchCard {
         } else {
             // Caso de emergencia por si hay algún partido antiguo en la BBDD sin inicializar
             this.formPeriodos.set([{ label: 'Goles', local: 0, visitante: 0 }]);
+        }
+    }
+
+    toggleMenu(): void {
+        this.isOpenMenu.update(prev => !prev);
+    }
+
+    // 3. Listener global: Si el menú está abierto y pulsa en cualquier otro lado, se cierra solo
+    @HostListener('document:click', ['$event'])
+    closeMenuOutside(event: Event): void {
+        if (this.isOpenMenu()) {
+            this.isOpenMenu.set(false);
         }
     }
 
