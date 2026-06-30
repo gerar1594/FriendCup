@@ -253,40 +253,49 @@
             }
 
             @if (activeTab() === 'jornadas') {
-                <div class="animate-in fade-in duration-200">
-                    @if (matches().length > 0) {
-                        <div class="flex gap-6 overflow-x-auto pb-4 pt-2 scroll-smooth snap-x snap-mandatory 
-                                    [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-neutral-100 [&::-webkit-scrollbar-track]:rounded-lg 
-                                    [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:rounded-lg hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400">
+    <div class="animate-in fade-in duration-200">
+        @if (matches().length > 0) {
+            
+            <div #jornadasContainer
+                (mousedown)="startDragging($event, jornadasContainer)"
+                (mouseleave)="stopDragging(jornadasContainer)"
+                (mouseup)="stopDragging(jornadasContainer)"
+                (mousemove)="moveContainer($event, jornadasContainer)"
+                class="flex gap-6 overflow-x-auto pb-4 pt-2 scroll-smooth snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none
+                        [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-neutral-100 [&::-webkit-scrollbar-track]:rounded-lg 
+                        [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:rounded-lg hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400">
 
-                            @for (jornada of jornadas(); track jornada) {
-                                <div class="flex-none w-[100%] md:w-[400px] max-w-[450px] bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden border border-neutral-200 snap-center">
-                                    <div class="bg-neutral-800 p-3 text-center">
-                                        <h3 class="m-0 text-white text-base font-bold">Jornada {{ jornada }}</h3>
-                                    </div>
+                @for (jornada of jornadas(); track jornada) {
+                    
+                    <div class="flex-none w-[100%] md:w-[400px] max-w-[450px] max-h-[550px] overflow-y-auto bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-neutral-200 snap-center select-none file:pointer-events-none
+                                [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+                        
+                        <div class="bg-neutral-800 p-3 text-center sticky top-0 z-10 shadow-sm">
+                            <h3 class="m-0 text-white text-base font-bold">Jornada {{ jornada }}</h3>
+                        </div>
 
-                                    <div class="flex flex-col py-2">
-                                        @for (match of getMatchesByJornada(jornada); track match.IDMatch) {
-                                            <app-match-card 
-                                                class="m-2 bg-neutral-50 rounded-lg block overflow-hidden"
-                                                [adminMode]="adminMode()"
-                                                [match]="match" 
-                                                [showDatails]="false"
-                                                [namePlayerLeague]="true"
-                                                (loadMatches)="loadLeagueData()">
-                                            </app-match-card>
-                                        }
-                                    </div>
-                                </div>
+                        <div class="flex flex-col py-2">
+                            @for (match of getMatchesByJornada(jornada); track match.IDMatch) {
+                                <app-match-card 
+                                    class="m-2 bg-neutral-50 rounded-lg block overflow-hidden"
+                                    [adminMode]="adminMode()"
+                                    [match]="match" 
+                                    [showDatails]="false"
+                                    [namePlayerLeague]="true"
+                                    (loadMatches)="loadLeagueData()">
+                                </app-match-card>
                             }
                         </div>
-                    } @else {
-                        <div class="text-center p-12 bg-neutral-50 rounded-lg border border-dashed border-neutral-200 text-neutral-500 text-sm my-4">
-                            <p class="m-0 font-medium">Aún no se han generado partidos para esta liga.</p>
-                        </div>
-                    }
-                </div>
-            }
+                    </div>
+                }
+            </div>
+        } @else {
+            <div class="text-center p-12 bg-neutral-50 rounded-lg border border-dashed border-neutral-200 text-neutral-500 text-sm my-4">
+                <p class="m-0 font-medium">Aún no se han generado partidos para esta liga.</p>
+            </div>
+        }
+    </div>
+}
             @if (activeTab() === 'extras') {
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-6">
                     @for (match of matchesExtra(); track match.IDMatch) {

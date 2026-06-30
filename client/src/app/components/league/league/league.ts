@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, QueryList, ViewChildren } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, QueryList, ViewChildren } from '@angular/core';
 import { OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -68,6 +68,12 @@ export class League implements OnInit {
     public isPredictionModalViewOpen = signal<boolean>(false);
 
     selectedPlayerId = signal<string>('');
+
+    public esHeaderFijo = signal<boolean>(false);
+
+    private isDragging = false;
+    private startX = 0;
+    private scrollLeft = 0;
 
     // Manejador del cambio en el select
     onPlayerFilterChange(event: Event): void {
@@ -500,12 +506,59 @@ export class League implements OnInit {
         );
     }
 
-
-    public filter(idPlayer: string): any[]{
-        let matchesFiltered: any[] = []
-
-
-
-        return matchesFiltered
+    public startDragging(e: MouseEvent, container: HTMLDivElement): void {
+        this.isDragging = true;
+        
+        // Guardamos la posición inicial del ratón y el scroll actual del contenedor
+        this.startX = e.pageX - container.offsetLeft;
+        this.scrollLeft = container.scrollLeft;
+        
+        // Desactivamos temporalmente el scroll-smooth de Tailwind para que responda instantáneamente a la mano
+        container.style.scrollBehavior = 'auto';
+        container.style.scrollSnapType = 'none';
     }
+
+    public stopDragging(container: HTMLDivElement): void {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        
+        // Restauramos las propiedades de scroll suave y anclaje (snap) al soltar
+        container.style.scrollBehavior = 'smooth';
+        container.style.scrollSnapType = 'x mandatory';
+    }
+
+    public moveContainer(e: MouseEvent, container: HTMLDivElement): void {
+        if (!this.isDragging) return;
+        
+        // Evitamos selecciones de texto raras mientras arrastramos
+        e.preventDefault(); 
+        
+        // Calculamos cuánto se ha movido el ratón (el multiplicador '2' aumenta la velocidad/sensibilidad)
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - this.startX) * 2; 
+        
+        // Aplicamos el movimiento al contenedor
+        container.scrollLeft = this.scrollLeft - walk;
+    }
+
+    @HostListener('window:scroll', [])
+    onWindowScroll() {
+        // Buscamos la posición en pantalla del primer cartel de jornada
+        const primerHeader = document.getElementById('header-jornada-1');
+        
+        if (primerHeader) {
+            // Obtenemos las coordenadas reales del elemento respecto a la pantalla
+            const caja = primerHeader.getBoundingClientRect();
+            
+            // Si ya estás en modo fijo y haces scroll hacia arriba del todo
+            if (this.esHeaderFijo() && window.scrollY < 180) { 
+                this.esHeaderFijo.set(false);
+            } 
+            // Si estás bajando y el elemento toca el techo (top <= 0)
+            else if (!this.esHeaderFijo() && caja.top <= 0) {
+                this.esHeaderFijo.set(true);
+            }
+        }
+    }
+
 }

@@ -42,6 +42,7 @@ export class MatchCard {
 
     showDatePicker = signal<boolean>(false);
     public showChat = signal<boolean>(false);
+    public activeConflictTooltip = signal<string | null>(null);
 
     protected puedeEditar = computed(() => {
         const partido = this.match();
@@ -208,14 +209,39 @@ export class MatchCard {
         this.isOpenMenu.update(prev => !prev);
     }
 
-    // 3. Listener global: Si el menú está abierto y pulsa en cualquier otro lado, se cierra solo
+
+
+    public toggleConflictTooltip(messageId: string, event: Event): void {
+        event.stopPropagation(); // Evita que el clic propague y cierre paneles
+        
+        if (this.activeConflictTooltip() === messageId) {
+            this.activeConflictTooltip.set(null);
+        } else {
+            this.activeConflictTooltip.set(messageId);
+        }
+    }
+
+    // 3. Modifica o unifica tu @HostListener global existente para cerrar también el Tooltip
     @HostListener('document:click', ['$event'])
     closeMenuOutside(event: Event): void {
         if (this.isOpenMenu()) {
             this.isOpenMenu.set(false);
         }
+        // Cerrar bocadillo si se clica fuera
+        if (this.activeConflictTooltip()) {
+            this.activeConflictTooltip.set(null);
+        }
     }
 
+    // 4. Función para obtener los detalles del partido en conflicto (Ajusta según tu modelo de datos)
+    public getConflictingMatchDetails(proposalDate: string): { rival: string, torneo: string, hora: string } {
+        // Aquí puedes buscar en un listado de partidos del usuario. Ejemplo dinámico simulado:
+        return {
+            rival: "F.C. Rival Directo",
+            torneo: "Liga Regular - Pista Central",
+            hora: "19:30 - 21:00"
+        };
+    }
     namePlayer(){
         let encontrado = false;
 
