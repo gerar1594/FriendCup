@@ -78,6 +78,7 @@ export class MatchCard {
 
     constructor() {
         // Usamos un timeout pequeño para asegurar que el input() esté disponible
+
         setTimeout(() => {
             const marcador = this.match().Resultado;
             if (marcador && marcador.periodos) {

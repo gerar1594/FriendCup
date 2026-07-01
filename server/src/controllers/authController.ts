@@ -135,7 +135,9 @@ class AuthController {
             const user = rows[0];
 
             // 4. Comprobar si la contraseña coincide con el Hash de la BBDD
-            const validPassword = await bcrypt.compare(Password, user.Password);
+            console.log(user, Password)
+
+            const validPassword = await bcrypt.compare(String(Password), user.Password);
             if (!validPassword) {
                 return res.status(401).json({ message: "Contraseña incorrecta." });
             }

@@ -14,4 +14,8 @@ export class PlayerService {
     getAnonimo() {
         return this.http.get<any>(`${this.API_URL}/anonimo`);
     }
+
+    getHomeData() {
+        return this.http.get<any>(`${this.API_URL}/home`);
+    }
 }
