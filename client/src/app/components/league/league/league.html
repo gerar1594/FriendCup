@@ -246,6 +246,7 @@
                     <app-clasification 
                         [classification]="classification()" 
                         [idLeague]="idLeague()" 
+                        [isAdmin]="adminMode()"
                         (onLeagueDataRefresh)="this.loadLeagueData()">
                     </app-clasification>
                 </div>

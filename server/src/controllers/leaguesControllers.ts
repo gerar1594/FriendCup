@@ -716,7 +716,7 @@ class LeaguesController{
     };
 
     public async updateNamePlayerLeague(req: Request, res: Response): Promise<void> {
-        const { idLeague, newName } = req.body;
+        const { idLeague, idPlayer, newName } = req.body;
         const currentUserId = req.headers['x-user-id'];
 
         // Validaciones básicas
@@ -727,31 +727,38 @@ class LeaguesController{
         if (newName.length > 20) {
             res.status(400).json({ message: 'El nombre es demasiado largo (máximo 20 caracteres).' });
         }
+        const [user] = await pool.query("SELECT * FROM leagues WHERE IDAdmin = ? AND IDLeague = ?", [currentUserId, idLeague]);
+        console.log(user, idPlayer, currentUserId)
+        if(user || idPlayer !== currentUserId){
+            try {
+                // Ejecutamos la actualización en MariaDB
+                const [result]: any = await pool.query(
+                    `UPDATE leagueplayer
+                    SET NamePlayerLeague = ?
+                    WHERE IDLeague = ? AND IDPlayer = ?`,
+                    [newName.trim(), idLeague, idPlayer]
+                );
 
-        try {
-            // Ejecutamos la actualización en MariaDB
-            const [result]: any = await pool.query(
-                `UPDATE leagueplayer
-                SET NamePlayerLeague = ?
-                WHERE IDLeague = ? AND IDPlayer = ?`,
-                [newName.trim(), idLeague, currentUserId]
-            );
+                // Si rowsAffected (o affectedRows) es 0, significa que el jugador no está inscrito en esa liga
+                if (result.affectedRows === 0) {
+                    res.status(404).json({
+                        message: 'No se encontró tu inscripción en esta liga para poder modificar el nombre.'
+                    });
+                }
 
-            // Si rowsAffected (o affectedRows) es 0, significa que el jugador no está inscrito en esa liga
-            if (result.affectedRows === 0) {
-                res.status(404).json({
-                    message: 'No se encontró tu inscripción en esta liga para poder modificar el nombre.'
+                res.status(200).json({
+                    message: 'Tu nombre en la liga ha sido actualizado correctamente. 📝'
                 });
+
+            } catch (error) {
+                console.error('❌ Error al actualizar el nombre del jugador en la liga:', error);
+                res.status(500).json({ message: 'Error interno del servidor.' });
             }
-
-            res.status(200).json({
-                message: 'Tu nombre en la liga ha sido actualizado correctamente. 📝'
-            });
-
-        } catch (error) {
-            console.error('❌ Error al actualizar el nombre del jugador en la liga:', error);
-            res.status(500).json({ message: 'Error interno del servidor.' });
+        }else{
+            res.status(403).json({ message: 'No tienes permisos para modificar el nombre de este jugador en la liga.' });
         }
+
+        
     };
 }
 
