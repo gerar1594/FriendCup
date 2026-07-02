@@ -10,14 +10,14 @@ import { PlayerService } from '../../../services/players/player-service.service'
     templateUrl: './home.html',
     styleUrls: ['./home.scss'],
     standalone: true,
-    imports: [MatchCard, NgClass, JsonPipe] // Asegúrate de importar JsonPipe si lo usas en el template
+    imports: [MatchCard, NgClass] // Asegúrate de importar JsonPipe si lo usas en el template
 })
 export class Home implements OnInit {
     private router = inject(Router);
     // Aquí inyectarías tu servicio de Ligas/Partidos
     private playerService = inject(PlayerService); // Asegúrate de tener un servicio para manejar la lógica de jugadores
     isLoading = signal<boolean>(true);
-    
+
     // Datos tipados según tu backend
     myLeagues = signal<any[]>([]); 
     upcomingMatches = signal<any[]>([]);

@@ -111,13 +111,14 @@ class LeaguesController{
             WHERE L.IDLeague = ?;`,[currentUserId, currentUserId, idleague]);
         const [classification] = await pool.query(
             `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws, LP.Diff,
-            IF(LB.PredictedWinnerID = P.IDPlayer, 1, 0) AS MiVotoCampeon
+            IF(LB.PredictedWinnerID = P.IDPlayer, 1, 0) AS MiVotoCampeon,
+            IF(LP.IDPlayer = ?, 1, 0) AS IsCurrentUser
             FROM leagueplayer LP
             JOIN players P ON LP.IDPlayer = P.IDPlayer
             LEFT JOIN league_bet LB ON LB.IDLeague = LP.IDLeague AND LB.IDPlayer = ? -- ID del usuario logueado
             WHERE LP.IDLeague = ?
             ORDER BY LP.Points DESC, LP.Diff DESC, LP.Matches ASC`,
-            [ currentUserId, idleague]
+            [ currentUserId, currentUserId, idleague]
         );
         // 2. Controlamos si 'Configuration' viene como String y lo parseamos de forma segura
         let leagueData = {...league[0]};

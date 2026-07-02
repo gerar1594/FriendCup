@@ -7,9 +7,11 @@ import { InviteLeagueHandler } from './components/league/invite-league-handler/i
 import { ExploreLeagues } from './components/league/explore-leagues/explore-leagues';
 import { Home } from './components/home/home/home';
 import { authGuard, publicGuard } from './core/guards/auth-guard';
+import { ForgotPassword } from './components/player/forgot-password/forgot-password';
 
 export const routes: Routes = [
     { path: 'login', component: AuthComponent, canActivate: [publicGuard] },
+    { path: 'forgot-password', component: ForgotPassword, canActivate: [publicGuard] },
 
 
     { path: 'leagues/manage', component: LeaguesManagementComponent, canActivate: [authGuard] },

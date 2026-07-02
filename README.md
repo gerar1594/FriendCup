@@ -12,5 +12,9 @@
 - Eliminar jornada y partido ✔️
 - Buscador liga ✔️
 - Likely liga ✔️
-- Apuestas
+- Apuestas✔️
 - Editar perfil
+
+## Objectivo grande
+- Modificar funcionamiento de jugadores en la liga
+    Como tricount añades los jugadores y con el link cada uno asume quien es
