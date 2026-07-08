@@ -20,7 +20,7 @@
                             id="matchJornada"
                             type="number" 
                             name="dayTrip" 
-                            [(ngModel)]="newMatchForm.dayTrip"
+                            [(ngModel)]="selectedDayTrip"
                             placeholder="Ej: 5 (Dejar vacío para Jornada Extra)"
                             min="1"
                             class="w-full p-2.5 pl-3 rounded-lg border border-neutral-300 bg-white text-sm text-neutral-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium"
@@ -43,8 +43,13 @@
                             <select name="local1" [(ngModel)]="newMatchForm.local1" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of sortedPlayers(); track p.IDPlayer) {
-                                    <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
+                                @for (p of sortedPlayers(); track p.IDLeaguePlayer) {
+                                    <option 
+                                        [value]="p.IDLeaguePlayer" 
+                                        [disabled]="p.disabled">
+                                        {{ p.NamePlayerLeague || p.NamePlayer }}
+                                        {{ p.disabled ? ' 🚫 (Ya jugó)' : '' }}
+                                    </option>
                                 }
                             </select>
                         </div>
@@ -53,8 +58,13 @@
                             <select name="local2" [(ngModel)]="newMatchForm.local2" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of sortedPlayers(); track p.IDPlayer) {
-                                    <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
+                                @for (p of sortedPlayers(); track p.IDLeaguePlayer) {
+                                    <option 
+                                        [value]="p.IDLeaguePlayer" 
+                                        [disabled]="p.disabled">
+                                        {{ p.NamePlayerLeague || p.NamePlayer }}
+                                        {{ p.disabled ? ' 🚫 (Ya jugó)' : '' }}
+                                    </option>
                                 }
                             </select>
                         </div>
@@ -67,8 +77,13 @@
                             <select name="visitante1" [(ngModel)]="newMatchForm.visitante1" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of sortedPlayers(); track p.IDPlayer) {
-                                    <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
+                                @for (p of sortedPlayers(); track p.IDLeaguePlayer) {
+                                    <option 
+                                        [value]="p.IDLeaguePlayer" 
+                                        [disabled]="p.disabled">
+                                        {{ p.NamePlayerLeague || p.NamePlayer }}
+                                        {{ p.disabled ? ' 🚫 (Ya jugó)' : '' }}
+                                    </option>
                                 }
                             </select>
                         </div>
@@ -77,9 +92,13 @@
                             <select name="visitante2" [(ngModel)]="newMatchForm.visitante2" required
                                     class="p-2 rounded-lg border border-neutral-300 bg-white text-sm outline-none focus:border-blue-500 transition-colors">
                                 <option value="bot">Anónimo</option>
-                                @for (p of sortedPlayers(); track p.IDPlayer) {
-                                    <option [value]="p.IDPlayer">{{ p.NamePlayerLeague || p.NamePlayer }}</option>
-                                }
+                                @for (p of sortedPlayers(); track p.IDLeaguePlayer) {
+                                    <option 
+                                        [value]="p.IDLeaguePlayer" 
+                                        [disabled]="p.disabled">
+                                        {{ p.NamePlayerLeague || p.NamePlayer }}
+                                        {{ p.disabled ? ' 🚫 (Ya jugó)' : '' }}
+                                    </option>                                }
                             </select>
                         </div>
                     </div>

@@ -20,8 +20,8 @@ export class MatchCard {
     private betsService = inject(BetsService);
 
     private notificationService = inject(NotificationService);
-    
-    
+
+
     match = input.required<any>();
     showDatails = input<boolean>(false);
     adminMode = input<boolean>(false);
@@ -95,7 +95,6 @@ export class MatchCard {
 
     openEditModal() {
         this.selectedMatch.set(this.match());
-
         // Como el backend inicializa 'Marcador' con sus periodos correspondientes,
         // simplemente clonamos el array de periodos para que el usuario edite los inputs.
         if (this.match().Resultado && this.match().Resultado.periodos) {

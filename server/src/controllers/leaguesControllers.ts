@@ -110,16 +110,34 @@ class LeaguesController{
             INNER JOIN sports S ON L.IDSport = S.IDSport
             WHERE L.IDLeague = ?;`,[currentUserId, currentUserId, idleague]);
         const [classification] = await pool.query(
-            `SELECT P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws, LP.Diff,
-            IF(LB.PredictedWinnerID = P.IDPlayer, 1, 0) AS MiVotoCampeon,
+            `SELECT LP.IDLeaguePlayer,P.IDPlayer, P.NamePlayer, LP.NamePlayerLeague, LP.Points, LP.Matches, LP.Victories, LP.Defeats, LP.Draws, LP.Diff,
+            IF(LB.PredictedWinnerID = LP.IDLeaguePlayer, 1, 0) AS MiVotoCampeon,
             IF(LP.IDPlayer = ?, 1, 0) AS IsCurrentUser
             FROM leagueplayer LP
-            JOIN players P ON LP.IDPlayer = P.IDPlayer
+            LEFT JOIN players P ON LP.IDPlayer = P.IDPlayer
             LEFT JOIN league_bet LB ON LB.IDLeague = LP.IDLeague AND LB.IDPlayer = ? -- ID del usuario logueado
             WHERE LP.IDLeague = ?
             ORDER BY LP.Points DESC, LP.Diff DESC, LP.Matches ASC`,
             [ currentUserId, currentUserId, idleague]
         );
+        const [rows]: any = await pool.query(
+            `SELECT count(*) as esMiembro 
+            FROM leagueplayer 
+            WHERE IDLeague = ? AND IDPlayer = ?`,
+            [idleague, currentUserId]
+        );
+        console.log("Resultado de la consulta de acceso:", rows);
+        const pertenece = rows[0].esMiembro > 0;
+        let isPlayer = true;
+        if (!pertenece) {
+            isPlayer = false;
+        }
+
+
+        // Si pertenece, ya puedes traer de forma segura los datos privados de la liga
+        const [ligaData] = await pool.query(`SELECT * FROM leagues WHERE IDLeague = ?`, [idleague]) ;
+
+
         // 2. Controlamos si 'Configuration' viene como String y lo parseamos de forma segura
         let leagueData = {...league[0]};
         if (typeof leagueData.Configuration === 'string') {
@@ -133,6 +151,8 @@ class LeaguesController{
         res.json({
             league: leagueData,
             classification: classification,
+            isPlayer: isPlayer
+
         });
     }
     
@@ -228,9 +248,59 @@ class LeaguesController{
         }
     }
 
-    public async join(req: Request, res: Response): Promise<any> {
-        const { InvitationCode, IDPlayer } = req.body;
+    public async createPlayer(req: Request, res: Response): Promise<any> {
+        const currentUserId = req.headers['x-user-id'];
+        const { IDLeague, NamePlayerLeague } = req.body;
+        console.log("Creando jugador en liga:", IDLeague, "con nombre:", NamePlayerLeague, "para usuario:", currentUserId);
+        
+        if(NamePlayerLeague.trim() === ''){
+            return res.status(400).json({ message: "El nombre del jugador no puede estar vacío." });
+        }
 
+        try {
+            // Buscar la liga por tu columna 'InvitationCode'
+            const [leagues]: any = await pool.query(
+                "SELECT IDLeague, Estado FROM leagues WHERE IDLeague = ? AND IDAdmin = ?", 
+                [IDLeague, currentUserId]
+            );
+
+            if (leagues.length === 0) {
+                return res.status(404).json({ message: "No eres administrador" });
+            }
+
+            const liga = leagues[0];
+
+            if (liga.Estado !== 'Abierta') {
+                return res.status(400).json({ message: "La liga ya no acepta nuevos jugadores." });
+            }
+
+            // Comprobar si ya está en 'leaguePlayer'
+            const [inscrito]: any = await pool.query(
+                "SELECT * FROM leagueplayer WHERE IDLeague = ? AND NamePlayerLeague = ?",
+                [liga.IDLeague, NamePlayerLeague]
+            );
+
+            if (inscrito.length > 0) {
+                return res.status(400).json({ message: "El nombre del jugador ya existe" });
+            }
+
+            // Insertar la nueva inscripción individual
+            await pool.query(
+                "INSERT INTO leagueplayer (IDLeague, NamePlayerLeague) VALUES (?, ?)",
+                [liga.IDLeague, NamePlayerLeague]
+            );
+
+            res.json({ message: "¡Te has unido con éxito!", idLeague: liga.IDLeague });
+
+        } catch (error: any) {
+            res.status(500).json({ message: "Error al unirse: " + error.message });
+        }
+    }
+
+    public async join(req: Request, res: Response): Promise<any> {
+        const currentUserId = req.headers['x-user-id'];
+
+        const { InvitationCode, IDLeaguePlayer } = req.body;
         try {
             // Buscar la liga por tu columna 'InvitationCode'
             const [leagues]: any = await pool.query(
@@ -251,17 +321,17 @@ class LeaguesController{
             // Comprobar si ya está en 'leaguePlayer'
             const [inscrito]: any = await pool.query(
                 "SELECT * FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?",
-                [liga.IDLeague, IDPlayer]
+                [liga.IDLeague, currentUserId]
             );
 
             if (inscrito.length > 0) {
                 return res.status(400).json({ message: "Ya estás inscrito en esta liga." });
             }
-
+            console.log("Unión de jugador en liga:", IDLeaguePlayer, "con ID de usuario:", currentUserId);
             // Insertar la nueva inscripción individual
             await pool.query(
-                "INSERT INTO leagueplayer (IDLeague, IDPlayer) VALUES (?, ?)",
-                [liga.IDLeague, IDPlayer]
+                "UPDATE `leagueplayer` SET `IDPlayer` = ? WHERE `leagueplayer`.`IDLeaguePlayer` = ?",
+                [currentUserId, IDLeaguePlayer]
             );
 
             res.json({ message: "¡Te has unido con éxito!", idLeague: liga.IDLeague });
@@ -291,62 +361,11 @@ class LeaguesController{
                     return res.status(404).json({ message: "La liga especificada no existe." });
                 }
 
-                const estadoLiga = leagueRows[0].Estado;
 
                 // 2. Si la liga está abierta, comprobamos si tiene partidos generados en esta liga
-                if (estadoLiga === 'Abierta') {
-                    const [matchRows]: any = await connection.query(
-                        `SELECT 1 FROM matchplayer mp
-                        INNER JOIN matches m ON mp.IDMatch = m.IDMatch
-                        WHERE m.IDLeague = ? AND mp.IDPlayer = ? LIMIT 1`,
-                        [idLeague, currentUserId]
-                    );
-
-                    // Si NO tiene ningún partido asignado en la liga, hacemos BORRADO LIMPIO (DELETE)
-                    if (matchRows.length === 0) {
-                        await connection.query(
-                            "DELETE FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?",
-                            [idLeague, currentUserId]
-                        );
-
-                        await connection.commit();
-                        return res.json({ 
-                            message: "Te has desapuntado de la liga correctamente de forma limpia. El torneo sigue abierto. 📑" 
-                        });
-                    }
-                }
-
-                // =========================================================================
-                // 3. FLUJO DE BOT COMODÍN (Si la liga está "En Curso"/"Finalizada" O tiene partidos)
-                // =========================================================================
-                
-                // Buscar un Bot Comodín global que esté libre en ESTA liga específica
-                const [availableBots]: any = await connection.query(
-                    `SELECT IDPlayer FROM players 
-                    WHERE NamePlayer LIKE 'Bot Comodín %' 
-                    AND IDPlayer NOT IN (
-                        SELECT IDPlayer FROM leagueplayer WHERE IDLeague = ?
-                    ) 
-                    ORDER BY CAST(SUBSTRING(NamePlayer, 13) AS UNSIGNED) ASC
-                    LIMIT 1`,
-                    [idLeague]
-                );
-
-                // Si por alguna razón extrema se llenaran los bots en una sola liga
-                if (availableBots.length === 0) {
-                    await connection.rollback();
-                    return res.status(400).json({
-                        message: "No quedan plazas de Bots disponibles en esta liga para congelar tus datos. Contacta al administrador."
-                    });
-                }
-
-                const idBotLibre = availableBots[0].IDPlayer;
-
-                // ¡EL CAMBIAZO EN CASCADA!
-                // El bot asume de forma independiente los puntos, estadísticas y partidos gracias al CASCADE.
                 await connection.query(
-                    "UPDATE leagueplayer SET IDPlayer = ? WHERE IDLeague = ? AND IDPlayer = ?",
-                    [idBotLibre, idLeague, currentUserId]
+                    "UPDATE leagueplayer SET IDPlayer = NULL WHERE IDLeague = ? AND IDPlayer = ?",
+                    [ idLeague, currentUserId]
                 );
 
                 await connection.commit();
@@ -718,7 +737,7 @@ class LeaguesController{
     public async updateNamePlayerLeague(req: Request, res: Response): Promise<void> {
         const { idLeague, idPlayer, newName } = req.body;
         const currentUserId = req.headers['x-user-id'];
-
+        console.log("Intentando actualizar nombre del jugador en liga:", idLeague, idPlayer, newName, "por usuario:", currentUserId);
         // Validaciones básicas
         if (!newName || newName.trim() === '') {
             res.status(400).json({ message: 'El nombre no puede estar vacío.' });
@@ -735,7 +754,7 @@ class LeaguesController{
                 const [result]: any = await pool.query(
                     `UPDATE leagueplayer
                     SET NamePlayerLeague = ?
-                    WHERE IDLeague = ? AND IDPlayer = ?`,
+                    WHERE IDLeague = ? AND IDLeaguePlayer = ?`,
                     [newName.trim(), idLeague, idPlayer]
                 );
 

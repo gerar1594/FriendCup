@@ -11,6 +11,8 @@ class LeaguesRoutes{
 
     config(): void{
         this.router.post('/create', leaguesController.create);
+        this.router.post('/create-player', leaguesController.createPlayer);
+
         this.router.post('/join', leaguesController.join);
         this.router.post('/leave', leaguesController.leave);
         this.router.get('/search', leaguesController.searchLeagues);

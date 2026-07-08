@@ -17,7 +17,9 @@ export const routes: Routes = [
     { path: 'leagues/manage', component: LeaguesManagementComponent, canActivate: [authGuard] },
     { path: 'leagues', component: ExploreLeagues, canActivate: [authGuard] },
 
+    { path: 'league/:id/:codigo', component: League, canActivate: [authGuard]},
     { path: 'league/:id', component: League , canActivate: [authGuard]},
+
 
     { path: 'my-matches', component: MyMatches, canActivate: [authGuard] },
     { path: 'invite/:code', component: InviteLeagueHandler, canActivate: [authGuard] },

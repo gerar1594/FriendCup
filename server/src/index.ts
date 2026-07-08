@@ -1,4 +1,9 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+const envFile = process.env.NODE_ENV === 'development' ? '.env.development' : '.env';
+dotenv.config({ path: envFile });
+console.log(`Cargando variables de entorno desde: ${envFile}`);
+
+
 import express,{ Application} from 'express';
 import morgan from 'morgan';
 import cors from 'cors';

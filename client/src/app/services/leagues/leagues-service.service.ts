@@ -81,8 +81,11 @@ export class LeaguesService {
     createLeague(leagueData: { NameLeague: string, IDSport: string, IDPlayer: number }): Observable<any> {
         return this.http.post(`${this.API_URL}/create`, leagueData);
     }
+    createPlayerInLeague(playerData: { IDLeague: string, IDPlayer: string, NamePlayerLeague: string }): Observable<any> {
+        return this.http.post(`${this.API_URL}/create-player`, playerData);
+    }
 
-    joinLeague(joinData: { InvitationCode: string, IDPlayer: any }): Observable<any> {
+    joinLeague(joinData: { InvitationCode: string, IDLeaguePlayer: string, IDPlayer: string }): Observable<any> {
         return this.http.post(`${this.API_URL}/join`, joinData);
     }
     leaveLeague(idLeague: number, idPlayer: number) {
@@ -110,6 +113,7 @@ export class LeaguesService {
     }
 
     updateNamePlayerLeague(idLeague: number, idPlayer: string, newName: string): Observable<any> {
+        console.log("Actualizando nombre del jugador en liga:", idLeague, idPlayer, newName);
         return this.http.post(`${this.API_URL}/update-name-player-league`, { idLeague, idPlayer, newName });
     }
 

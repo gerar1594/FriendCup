@@ -16,7 +16,7 @@
                         [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-neutral-50 
                         [&::-webkit-scrollbar-thumb]:bg-neutral-200 [&::-webkit-scrollbar-thumb]:rounded-md">
                 
-                @for (player of editableList(); track player.IDPlayer; let idx = $index) {
+                @for (player of editableList(); track player.IDLeaguePlayer; let idx = $index) {
                     <div 
                         draggable="true"
                         (dragstart)="onDragStart(idx)"

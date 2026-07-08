@@ -87,16 +87,16 @@
                                     <p class="text-xs text-gray-400 mt-0.5">Lanzada por {{ msg.userName }}</p>
                                 </div>
                             </div>
-                            
+
                             <div class="my-3 p-3 bg-blue-50 rounded-lg text-slate-800 font-bold text-md">
-                                    {{ (msg.proposalDate | date:"EEEE, d 'de' MMMM - HH:mm":'UTC') | titlecase }}
+                                    {{ (msg.proposalDate | date:"EEEE, d 'de' MMMM - HH:mm") | titlecase }}
                             </div>
 
                             <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
                                 <span class="text-xs text-gray-600 font-medium">
                                     Votos recibidos: <strong class="text-blue-600 font-bold text-sm">{{ msg.votes?.length || 0 }}/4</strong>
                                 </span>
-                                
+
                                 <button 
                                     (click)="toggleVote(msg.IDMessage)"
                                     [ngClass]="hasVoted(msg.votes) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'"

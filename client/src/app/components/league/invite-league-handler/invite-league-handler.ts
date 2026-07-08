@@ -37,16 +37,6 @@ export class InviteLeagueHandler implements OnInit {
     }
 
     private inscribirUsuarioEnLiga(code: string) {
-        this.leagueService.joinLeague({InvitationCode: code, IDPlayer: this.authService.currentUser().idPlayer}).subscribe({
-            next: (res: any) => {
-                // Redirigimos directamente a la vista de la liga usando su ID real devuelto por el back
-                this.router.navigate(['/league', res.idLeague]);
-            },
-            error: (err) => {
-                console.error('Error al unirse:', err);
-                this.notificationService.show('No se pudo unir a la liga con el código proporcionado. Redirigiendo al dashboard.' + err.error?.message, 'error');
-                this.router.navigate(['/leagues/manage']);
-            }
-        });
+        
     }
 }

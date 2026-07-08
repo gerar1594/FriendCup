@@ -88,19 +88,7 @@ export class LeaguesManagementComponent implements OnInit {
             IDPlayer: this.idPlayer()!
         };
 
-        this.leaguesService.joinLeague(payload).subscribe({
-            next: (res) => {
-                this.notificationService.show(res.message, 'success');
-
-                this.leaguesService.triggerRefresh();
-
-                this.router.navigate(['/league', res.idLeague]);
-            },
-            error: (err) => {
-                this.notificationService.show(err.message, 'error');
-
-            }
-        });
+        
 
     }
 }

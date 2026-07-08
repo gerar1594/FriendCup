@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, model, OnInit, output } from '@angular/core';
+import { Component, computed, inject, input, model, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../../services/notification/notification.service'; // Ajusta la ruta
@@ -17,21 +17,47 @@ export class AddMatchModal{
     isOpen = model.required<boolean>(); // Dos direcciones: si el hijo lo cambia, el padre se entera
     idLeague = input.required<number>();
     classification = input.required<any[]>();
-    jornadas = input.required<number[]>();
+    jornadas = input.required<any[]>();
 
     sortedPlayers = computed(() => {
-        const players = this.classification(); // Asumiendo que classification es una Signal
-        
+        const players = this.classification();
+        const listaPartidos = this.jornadas();
+        const jornadaActual = this.selectedDayTrip();
         if (!players) return [];
+        // Paso A: Crear el Set de IDs ocupados para la jornada actual
+        const busyIds = new Set<number>();
+        if (jornadaActual && listaPartidos) {
+            listaPartidos.forEach(match => {
+                if (String(match.DayTrip) === String(jornadaActual)) {
+                    // Añadimos los IDs que jugaron (usa los campos reales de tu objeto match)
+                    match.JugadoresLocalNames?.forEach((player: any) => {
+                        if (player.IDLeaguePlayer) busyIds.add(player.IDLeaguePlayer);
+                    });
+                    match.JugadoresVisitanteNames?.forEach((player: any) => {
+                        if (player.IDLeaguePlayer) busyIds.add(player.IDLeaguePlayer);
+                    });
+                }
+            });
+        }
 
-        // Creamos una copia del array antes de ordenar (.slice() o [...spread])
-        return [...players].sort((a, b) => {
-            const nameA = a.NamePlayerLeague || a.NamePlayer || '';
-            const nameB = b.NamePlayerLeague || b.NamePlayer || '';
-            
-            // El método localeCompare ordena correctamente ignorando mayúsculas/minúsculas y tildes
-            return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-        });
+        // Paso B: Mapeamos los jugadores para meterles la propiedad 'disabled' y luego ordenamos
+        return [...players]
+            .map(player => ({
+                ...player,
+                disabled: busyIds.has(player.IDLeaguePlayer) // <-- ¡Propiedad inyectada aquí mismo!
+            }))
+            .sort((a, b) => {
+                if (a.disabled !== b.disabled) {
+                    return a.disabled ? 1 : -1; 
+                    // Retornar 1 mueve a 'a' hacia abajo; retornar -1 lo mueve hacia arriba.
+                }
+
+                // --- CRITERIO 2: Orden alfabético ---
+                // Si ambos están disponibles, o ambos ya jugaron, se ordenan de la A a la Z entre ellos.
+                const nameA = a.NamePlayerLeague || a.NamePlayer || '';
+                const nameB = b.NamePlayerLeague || b.NamePlayer || '';
+                return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+            });
     });
 
     onSaved = output<void>();
@@ -40,7 +66,7 @@ export class AddMatchModal{
     // 2. Servicios inyectados
     private matchService = inject(MatchesService);
     private notifService = inject(NotificationService);
-
+    selectedDayTrip = signal<string>('');
 
     // 3. Estado interno del formulario
     newMatchForm = {
@@ -61,6 +87,7 @@ export class AddMatchModal{
             visitante2: 'bot',
             dayTrip: ''
         };
+        this.selectedDayTrip.set('');
     }
 
     closeModal() {
@@ -78,7 +105,7 @@ export class AddMatchModal{
             idLeague: this.idLeague(),
             locales: [this.newMatchForm.local1, this.newMatchForm.local2],
             visitantes: [this.newMatchForm.visitante1, this.newMatchForm.visitante2],
-            dayTrip: this.newMatchForm.dayTrip
+            dayTrip: this.selectedDayTrip() || ''
         };
         this.matchService.createManualMatch(payload).subscribe({
             next: (res: any) => {

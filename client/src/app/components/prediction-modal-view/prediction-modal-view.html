@@ -23,7 +23,7 @@
                     Clasificacion
                 </div>
 
-                @for (player of betList(); track player.IDPlayer; let idx = $index) {
+                @for (player of betList(); track player.IDLeaguePlayer; let idx = $index) {
                     <div class="flex items-center gap-3 bg-neutral-50 p-3 transition-all select-none group">
                         <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
                             [ngClass]="{
@@ -37,7 +37,7 @@
                     </div>
                     <div 
                         class="flex items-center gap-3 border border-neutral-200 p-3 rounded-xl transition-all select-none group"
-                        [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'bg-green-100' : 'bg-red-200'"
+                        [ngClass]="(player.IDLeaguePlayer === classification()[idx].IDLeaguePlayer) ? 'bg-green-100' : 'bg-red-200'"
                     >
 
                         <span class="text-xs font-bold text-neutral-700 flex-1 truncate">
@@ -46,13 +46,13 @@
                     </div>
                     <div class="flex items-center gap-3 p-3 transition-all select-none group justify-center">
                         <i class="fa-solid fa-right-long"
-                            [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'text-green-100' : 'text-red-200'"
+                            [ngClass]="(player.IDLeaguePlayer === classification()[idx].IDLeaguePlayer) ? 'text-green-100' : 'text-red-200'"
 
                         ></i>
                     </div>
                     <div
                         class="flex items-center gap-3 border border-neutral-200 p-3 rounded-xl transition-all select-none group"
-                        [ngClass]="(player.IDPlayer === classification()[idx].IDPlayer) ? 'bg-green-100' : 'bg-red-200'"
+                        [ngClass]="(player.IDLeaguePlayer === classification()[idx].IDLeaguePlayer) ? 'bg-green-100' : 'bg-red-200'"
 
                     >
 

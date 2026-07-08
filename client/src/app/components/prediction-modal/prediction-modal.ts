@@ -33,19 +33,19 @@ export class PredictionModalComponent {
             const currentClassification = this.classification();
             const currentBetOrder : any[] = this.betOrder() ? this.betOrder().PredictOrder : [];
 
-            if (currentClassification.length > 0) {
+            if (currentClassification && currentClassification.length > 0) {
                 // 🔮 Si el usuario ya tiene una apuesta guardada en la base de datos
-                if (currentBetOrder.length > 0) {
+                if (currentBetOrder && currentBetOrder.length > 0) {
 
                     // Mapeamos los IDs de la apuesta transformándolos en los objetos completos del jugador
                     const orderedPlayers = currentBetOrder
-                        .map(id => currentClassification.find(player => player.IDPlayer === Number(id)))
+                        .map(id => currentClassification.find(player => player.IDLeaguePlayer === Number(id)))
                         .filter(player => player !== undefined); // Evita problemas si un jugador fue borrado de la liga
 
                     // 🛡️ Salvavidas: Si se unieron nuevos jugadores a la liga DESPUÉS de hacer la porra,
                     // los buscamos y los metemos al final para que la porra no quede incompleta.
                     const missingPlayers = currentClassification.filter(
-                        player => !currentBetOrder.includes(player.IDPlayer)
+                        player => !currentBetOrder.includes(player.IDLeaguePlayer)
                     );
                     // Seteamos la lista final combinando ordenados + nuevos si los hubiera
                     this.editableList.set([...orderedPlayers, ...missingPlayers]);

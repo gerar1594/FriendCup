@@ -103,7 +103,7 @@ class BetsController {
                 "SELECT Estado FROM leagues WHERE IDLeague = ?", 
                 [idLeague]
             );
-
+            
             if (league.length === 0) {
                 return res.status(404).json({ message: 'La liga no existe.' });
             }
@@ -115,14 +115,13 @@ class BetsController {
 
             // 3. 🛡️ SEGURIDAD: Validar que el candidato realmente pertenezca a esa liga
             const [isParticipant]: any = await pool.query(
-                "SELECT 1 FROM leagueplayer WHERE IDLeague = ? AND IDPlayer = ?",
+                "SELECT 1 FROM leagueplayer WHERE IDLeague = ? AND IDLeaguePlayer = ?",
                 [idLeague, predictedWinnerId]
             );
 
             if (isParticipant.length === 0) {
                 return res.status(400).json({ message: 'El jugador elegido no participa en esta liga.' });
             }
-
             // 4. Guardar o actualizar la apuesta (Gracias al UNIQUE KEY de la tabla)
             await pool.query(
                 `INSERT INTO league_bet (IDLeague, IDPlayer, PredictedWinnerID) 
@@ -144,7 +143,7 @@ class BetsController {
 
     public async saveOrderLeagueBet(req: Request, res: Response): Promise<any> {
         // 'prediction' es el array ordenado de objetos o IDs que viene del Drag & Drop
-        const { idLeague,prediction } = req.body; 
+        const { idLeague, prediction } = req.body; 
         const currentUserId = req.headers['x-user-id'];
         if (!currentUserId) {
             return res.status(401).json({ message: 'Usuario no autenticado.' });
@@ -160,10 +159,10 @@ class BetsController {
 
         // Convertimos el array de la predicción en un String separado por comas para 'PredictOrder'
         // Ej: [1, 62, 14] -> "1,62,14"
-        const predictOrderString = prediction.map((p: any) => p.IDPlayer );
+        const predictOrderString = prediction.map((p: any) => p.IDLeaguePlayer );
         console.log(predictOrderString)
         // El ganador definitivo (🥇) es el primer elemento del array reordenado
-        const predictedWinnerId = typeof prediction[0] === 'object' ? prediction[0].IDPlayer : prediction[0];
+        const predictedWinnerId = typeof prediction[0] === 'object' ? prediction[0].IDLeaguePlayer : prediction[0];
 
         try {
             const connection = await pool.getConnection();

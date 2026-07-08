@@ -72,28 +72,37 @@ class PlayersController{
             // 1. Promesa para cargar las Ligas y la clasificación del usuario
             const leaguesQuery = pool.query(`
                 SELECT
-                    c1.IDLeague,
+                    l.IDLeague,
                     l.NameLeague,
                     l.Estado,
-                    c1.Points AS MisPuntos,
-                    (
-                        SELECT COUNT(*) + 1
+                    lp.Points AS MisPuntos,
+                    -- Calculamos la posición solo si realmente es un jugador de la liga
+                    IF(lp.IDLeaguePlayer IS NOT NULL,
+                        (SELECT COUNT(*) + 1
                         FROM leagueplayer c2
-                        WHERE c2.IDLeague = c1.IDLeague
-                        AND (c2.Points > c1.Points OR (c2.Points = c1.Points AND c2.Diff > c1.Diff))
+                        WHERE c2.IDLeague = l.IDLeague
+                        AND (c2.Points > lp.Points OR (c2.Points = lp.Points AND c2.Diff > lp.Diff))),
+                        NULL
                     ) AS MiPosicion,
-                    (
-                        SELECT COUNT(*)
-                        FROM leagueplayer c3
-                        WHERE c3.IDLeague = c1.IDLeague
-                    ) AS TotalJugadores
-                FROM leagueplayer c1
-                JOIN leagues l ON c1.IDLeague = l.IDLeague
-                WHERE c1.IDPlayer = ?;
-            `, [currentUserId]);
+                    (SELECT COUNT(*) FROM leagueplayer c3 WHERE c3.IDLeague = l.IDLeague) AS TotalJugadores,
+
+                    -- Banderas booleanas (1 o 0)
+                    IF(l.IDAdmin = ?, 1, 0) AS isAdmin,
+                    IF(lp.IDPlayer IS NOT NULL, 1, 0) AS isPlayer,
+                    IF(llp.IDPlayer IS NOT NULL, 1, 0) AS isFavorite
+
+
+                FROM leagues l
+                -- Hacemos LEFT JOIN buscando específicamente a este jugador
+                LEFT JOIN leagueplayer lp ON l.IDLeague = lp.IDLeague AND lp.IDPlayer = ?
+                LEFT JOIN likeleagueplayer llp ON l.IDLeague = llp.IDLeague AND llp.IDPlayer = ?
+
+                -- Filtramos para que solo salgan las ligas donde es admin O es jugador
+                WHERE l.IDAdmin = ? OR lp.IDPlayer IS NOT NULL OR llp.IDPlayer IS NOT NULL;
+            `, [currentUserId, currentUserId, currentUserId, currentUserId]);
 
             // 2. Promesa para cargar los Próximos Partidos (Fusionado con tu lógica JSON_ARRAYAGG)
-            const matchesQuery = pool.query(`
+            /*const matchesQuery = pool.query(`
                 SELECT
                     m.IDMatch,
                     m.IDLeague,
@@ -106,38 +115,43 @@ class PlayersController{
                     m.Winner,
                     mp.Bando AS bando,
                     -- 🏠 LOCALES: Devuelve un array de objetos JSON
-                    (SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'NamePlayer', pl_loc.NamePlayer,
-                            'NamePlayerLeague', lp_loc.NamePlayerLeague,
-                            'IDPlayer', lp_loc.IDPlayer
-                        )
-                    )
-                    FROM matchplayer mp_local
-                    JOIN players pl_loc ON mp_local.IDPlayer = pl_loc.IDPlayer
-                    LEFT JOIN leagueplayer lp_loc ON pl_loc.IDPlayer = lp_loc.IDPlayer AND lp_loc.IDLeague = m.IDLeague
-                    WHERE mp_local.IDMatch = m.IDMatch AND mp_local.Bando = 'Local') AS JugadoresLocalNames,
+                    (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'IDLeaguePlayer', lp_loc.IDLeaguePlayer,
+                    'NamePlayerLeague', COALESCE(lp_loc.NamePlayerLeague, pl_loc.NamePlayer, 'Invitado'),
+                    'IDPlayer', lp_loc.IDPlayer
+                ))
+                FROM matchplayer mp_local
+                LEFT JOIN leagueplayer lp_loc ON mp_local.IDPlayer = lp_loc.IDLeaguePlayer
 
-                    -- 🏃‍♂️ VISITANTES: Devuelve un array de objetos JSON
-                    (SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'NamePlayer', pl_vis.NamePlayer,
-                            'NamePlayerLeague', lp_vis.NamePlayerLeague,
-                            'IDPlayer', lp_vis.IDPlayer
-                        )
-                    )
-                    FROM matchplayer mp_visit
-                    JOIN players pl_vis ON mp_visit.IDPlayer = pl_vis.IDPlayer
-                    LEFT JOIN leagueplayer lp_vis ON pl_vis.IDPlayer = lp_vis.IDPlayer AND lp_vis.IDLeague = m.IDLeague
-                    WHERE mp_visit.IDMatch = m.IDMatch AND mp_visit.Bando = 'Visitante') AS JugadoresVisitanteNames,
+                LEFT JOIN players pl_loc ON lp_loc.IDPlayer = pl_loc.IDPlayer
+
+                WHERE mp_local.IDMatch = m.IDMatch AND mp_local.Bando = 'Local'
+                ) AS JugadoresLocalNames,
+
+                -- ✈️ Jugadores Visitantes
+                (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                    'IDLeaguePlayer', lp_vis.IDLeaguePlayer,
+                    'NamePlayerLeague', COALESCE(lp_vis.NamePlayerLeague, pl_vis.NamePlayer, 'Invitado'),
+                    'IDPlayer', lp_vis.IDPlayer
+                ))
+                FROM matchplayer mp_visit
+                LEFT JOIN leagueplayer lp_vis ON mp_visit.IDPlayer = lp_vis.IDLeaguePlayer
+
+                LEFT JOIN players pl_vis ON lp_vis.IDPlayer = pl_vis.IDPlayer
+
+                WHERE mp_visit.IDMatch = m.IDMatch AND mp_visit.Bando = 'Visitante'
+                ) AS JugadoresVisitanteNames,
 
                     mb.PredictedBando AS MiApuesta,
                     mb.PredictedScore AS MiResultadoApostado
 
                 FROM matches m
                 INNER JOIN leagues l ON m.IDLeague = l.IDLeague
+                INNER JOIN leagueplayer lp ON lp.IDPlayer = ?
                 INNER JOIN sports s ON l.IDSport = s.IDSport
-                INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch AND mp.IDPlayer = ?
+                INNER JOIN matchplayer mp ON m.IDMatch = mp.IDMatch AND mp.IDPlayer = lp.IDLeaguePlayer
                 LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ?
                 WHERE m.Estado = 'Pendiente' AND m.Fecha >= NOW()
                 ORDER BY
@@ -145,11 +159,63 @@ class PlayersController{
                     Fecha ASC,
                     m.DayTrip ASC
                 LIMIT 5
-            `, [currentUserId, currentUserId]); // El ID se pasa dos veces (para matchplayer y match_bet)
+            `, [currentUserId, currentUserId]); // El ID se pasa dos veces (para matchplayer y match_bet)*/
+
+            const query = `
+            SELECT
+                m.IDMatch,
+                m.IDLeague,
+                l.NameLeague,
+                s.NameSport,
+                m.DayTrip,
+                IF(m.Fecha IS NULL OR YEAR(m.Fecha) < 2000, NULL, m.Fecha) AS Fecha,
+                m.Resultado,
+                m.Estado,
+                m.Winner,
+                mp.Bando AS bando,
+                (
+                    SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                        'IDLeaguePlayer', lp_local.IDLeaguePlayer,
+                        'NamePlayerLeague', COALESCE(lp_local.NamePlayerLeague, pl_local.NamePlayer, 'Invitado'),
+                        'IDPlayer', lp_local.IDPlayer
+                    ))
+                    FROM matchplayer mp_local
+                    INNER JOIN leagueplayer lp_local ON lp_local.IDLeaguePlayer = mp_local.IDPlayer
+                    LEFT JOIN players pl_local ON lp_local.IDLeaguePlayer = pl_local.IDPlayer
+                    WHERE mp_local.IDMatch = m.IDMatch AND mp_local.Bando = 'Local'
+                ) AS JugadoresLocalNames,
+                (
+                    SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                        'IDLeaguePlayer', lp_vis.IDLeaguePlayer,
+                        'NamePlayerLeague', COALESCE(lp_vis.NamePlayerLeague, pl_vis.NamePlayer, 'Invitado'),
+                        'IDPlayer', lp_vis.IDPlayer
+                    ))
+                    FROM matchplayer mp_visit
+                    INNER JOIN leagueplayer lp_vis ON lp_vis.IDLeaguePlayer = mp_visit.IDPlayer
+                    LEFT JOIN players pl_vis ON lp_vis.IDLeaguePlayer = pl_vis.IDPlayer
+                    WHERE mp_visit.IDMatch = m.IDMatch AND mp_visit.Bando = 'Visitante'
+                ) AS JugadoresVisitanteNames,
+                mb.PredictedBando AS MiApuesta,
+                mb.PredictedScore AS MiResultadoApostado
+            FROM matches m
+            INNER JOIN matchplayer mp ON mp.IDMatch = m.IDMatch
+            INNER JOIN leagueplayer lp ON lp.IDLeaguePlayer = mp.IDPlayer
+            INNER JOIN leagues l ON m.IDLeague = l.IDLeague
+            INNER JOIN sports s ON l.IDSport = s.IDSport
+            LEFT JOIN match_bet mb ON m.IDMatch = mb.IDMatch AND mb.IDPlayer = ?
+            WHERE lp.IDPlayer = ?
+            ORDER BY
+                ISNULL(Fecha) ASC,
+                Fecha DESC,
+                m.DayTrip ASC
+            LIMIT 5;
+            `
+
+            const matchesQuery = pool.query(query, [currentUserId, currentUserId]);
 
             // Ejecutamos ambas consultas en paralelo
             const [[leagues], [matches]] = await Promise.all([leaguesQuery, matchesQuery]);
-
+            console.log(leagues)
             // 3. Procesamos los datos antes de enviarlos a Angular
             const processedMatches = (matches as any[]).map(match => {
 

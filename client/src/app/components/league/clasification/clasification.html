@@ -1,5 +1,5 @@
 <h2 class="mt-0 text-neutral-800 text-xl font-bold mb-6">📊 Tabla de Posiciones Individual</h2>
-            
+
 <div class="w-full overflow-x-auto rounded-lg border border-neutral-100">
     <table class="w-full border-collapse">
         <thead>
@@ -15,7 +15,7 @@
             </tr>
         </thead>
         <tbody>
-            @for (row of classification(); track row.NamePlayer; let idx = $index) {
+            @for (row of classification(); track row.IDLeaguePlayer; let idx = $index) {
                 <tr class="border-b border-neutral-100 last:border-none transition-colors hover:bg-neutral-50/50"
                     [ngClass]="{'bg-emerald-50/40 hover:bg-emerald-50/60': this.isEqualUser(row.NamePlayer)}">
 
@@ -29,8 +29,8 @@
 
                     <td class="p-4 md:pl-4 md:pr-4 pl-1 pr-1 font-medium text-sm w-full"
                         [ngClass]="this.isEqualUser(row.NamePlayer) ? 'text-emerald-600' : 'text-neutral-800'">
-                        
-                        @if (selectedPlayerId() === row.IDPlayer) {
+
+                        @if (selectedPlayerId() === row.IDLeaguePlayer) {
                             <div class="flex items-center gap-2 animate-in fade-in duration-150">
                                 <input 
                                     type="text" 
@@ -64,14 +64,17 @@
                                 } @else {
                                     {{ row.NamePlayer }}
                                 }
-                                
+
                                 @if (row.IsCurrentUser || isAdmin()) {
                                     <button 
-                                        (click)="onStartEdit(row.IDPlayer, row.NamePlayerLeague || row.NamePlayer)" 
+                                        (click)="onStartEdit(row.IDLeaguePlayer , row.NamePlayerLeague || row.NamePlayer)" 
                                         class="ml-2 text-neutral-400 hover:text-emerald-600 transition-colors cursor-pointer p-0.5"
                                         title="Editar apodo">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
+                                }
+                                @if(isAdmin() && row.IDPlayer) {
+                                    <i class="fa-solid fa-user text-neutral-500"></i>
                                 }
                                 {{ row.MiVotoCampeon ? '⭐' : '' }}
 
@@ -87,9 +90,42 @@
                     <td class="text-center p-3 text-sm font-semibold text-amber-500" [ngClass]="{ 'text-emerald-500' : row.Diff > 0, 'text-red-500': row.Diff < 0, 'text-amber-500' : row.Diff == 0 }">{{ row.Diff }}</td>
                 </tr>
             } @empty {
-                <tr>
-                    <td colspan="7" class="text-center p-12 text-neutral-400 italic text-sm">
-                        Aún no hay jugadores inscritos en esta liga. ¡Comparte el código!
+                @if (!showAddPlayerInput()) {
+                    <tr>
+                        <td colspan="8" class="text-center p-12 text-neutral-400 italic text-sm">
+                            Aún no hay jugadores inscritos en esta liga. ¡Añade uno o comparte el código!
+                        </td>
+                    </tr>
+                }
+            }
+
+            @if (showAddPlayerInput()) {
+                <tr class="bg-blue-50/50 border-t border-blue-100 animate-in fade-in slide-in-from-top-2">
+                    <td class="text-center p-1 text-blue-500 font-bold w-[40px]">
+                        <i class="fa-solid fa-plus"></i>
+                    </td>
+                    <td class="p-3 md:pl-4 md:pr-4 pl-1 pr-1 w-full" colspan="7">
+                        <div class="flex items-center gap-2">
+                            <input 
+                                type="text" 
+                                #newPlayerInput
+                                placeholder="Nombre o email del jugador..." 
+                                class="flex-1 min-w-[150px] max-w-[250px] p-2 text-sm rounded-lg border border-blue-300 bg-white text-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+                                (keydown.enter)="onSaveNewPlayer(newPlayerInput.value)"
+                                (keydown.escape)="showAddPlayerInput.set(false)"
+                                autofocus
+                            />
+                            <button 
+                                (click)="onSaveNewPlayer(newPlayerInput.value)"
+                                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm">
+                                Guardar
+                            </button>
+                            <button 
+                                (click)="showAddPlayerInput.set(false)"
+                                class="px-3 py-2 bg-white border border-neutral-300 hover:bg-neutral-100 text-neutral-600 rounded-lg text-xs font-semibold transition-colors cursor-pointer">
+                                Cancelar
+                            </button>
+                        </div>
                     </td>
                 </tr>
             }

@@ -13,11 +13,12 @@ import { PlayerService } from '../../../services/players/player-service.service'
 import { BetsService } from '../../../services/bets/bets-service.service';
 import { PredictionModalComponent } from '../../prediction-modal/prediction-modal';
 import { PredictionModalView } from '../../prediction-modal-view/prediction-modal-view';
+import { LinkedLeagueDialog } from "../../player/linked-league-dialog/linked-league-dialog";
 
 type LeagueTab = 'clasificacion' | 'jornadas' | 'extras' | 'filtro';
 @Component({
     selector: 'app-league',
-    imports: [MatchCard, CommonModule, Clasification, AddMatchModal, PredictionModalComponent, PredictionModalView], // Añadido CommonModule por si usas directivas básicas
+    imports: [MatchCard, CommonModule, Clasification, AddMatchModal, PredictionModalComponent, PredictionModalView, LinkedLeagueDialog], // Añadido CommonModule por si usas directivas básicas
     templateUrl: './league.html',
     styleUrl: './league.scss',
 })
@@ -35,6 +36,10 @@ export class League implements OnInit {
     idLeague = signal<number>(0);
     idPlayer = signal<number | null>(null);
     isPlayer = signal<boolean>(false);
+    isFabMenuOpen = signal(false);
+    showAddPlayerInput = signal(false);
+    showJoinDialog = signal(false);
+
     
 
     leagueData = signal<any>(null);
@@ -44,7 +49,6 @@ export class League implements OnInit {
         const players = this.classification(); // Asumiendo que classification es una Signal
         
         if (!players) return [];
-
         // Creamos una copia del array antes de ordenar (.slice() o [...spread])
         return [...players].sort((a, b) => {
             const nameA = a.NamePlayerLeague || a.NamePlayer || '';
@@ -121,6 +125,8 @@ export class League implements OnInit {
             next: (res) => {
                 this.leagueData.set(res.league);
                 this.classification.set(res.classification);
+                this.isPlayer.set(res.isPlayer);
+                this.verificarCodigoInvitacion();
             },
             error: (err) => {
                 this.notifService.show(err.error?.message || 'Error al cargar la liga', 'error');
@@ -172,15 +178,17 @@ export class League implements OnInit {
         });
 
         // 3. Verificar si el jugador pertenece a la liga
-        const currentUserId = this.authService.currentUser().idPlayer;
+        /*const currentUserId = this.authService.currentUser().idPlayer;
         this.leaguesService.isPlayerInLeague(this.idLeague(), currentUserId).subscribe({
             next: (res) => {
                 this.isPlayer.set(res.isPlayer);
+                this.verificarCodigoInvitacion();
+
             },
             error: (err) => {
                 console.error('Error verificando acceso a la liga:', err);
             }
-        });
+        });*/
         this.betsService.getOrderLeagueBet(this.idLeague()).subscribe({
             next: (res) => {
                 this.betData.set(res);
@@ -216,6 +224,37 @@ export class League implements OnInit {
         }
     }
 
+    limpiarUrl() {
+        // Navegamos a la misma liga pero sin el parámetro del código.
+        // replaceUrl: true hace que no se guarde en el historial de "Atrás" del navegador
+        this.router.navigate(['/league', this.idLeague()], { replaceUrl: true });
+    }
+
+    verificarCodigoInvitacion() {
+        // Cogemos el código de la ruta (leagues/:id/:codigo)
+        const urlCode = this.route.snapshot.paramMap.get('codigo');
+        const liga = this.leagueData();
+        
+        if (!liga) return;
+        // Si el usuario NO es jugador y NO es admin, comprobamos el código
+        if (!this.isPlayer()) {
+            
+            // Si hay código en la URL y coincide con el de la liga (ignorando mayúsculas/minúsculas)
+            if (urlCode && urlCode.toLowerCase() === liga.InvitationCode.toLowerCase()) {
+                this.showJoinDialog.set(true); // ¡Abrimos el modal!
+            } 
+            else if (urlCode && urlCode.toLowerCase() !== liga.InvitationCode.toLowerCase()) {
+                // Opcional: El código de la URL es incorrecto
+                alert('El código de invitación no es válido.');
+                this.limpiarUrl(); // Le quitamos el código erróneo de la URL
+
+            }
+        }else{
+            this.limpiarUrl(); // Le quitamos el código erróneo de la URL
+        }
+
+    }
+
     onToggleAdminMode() {
         this.adminMode.set(!this.adminMode());
     }
@@ -230,7 +269,7 @@ export class League implements OnInit {
 
     copiarEnlaceInvitacion() {
         const baseUrL = window.location.origin; 
-        const enlace = `${baseUrL}/invite/${this.leagueData().InvitationCode}`;
+        const enlace = `${baseUrL}/league/${this.leagueData().IDLeague}/${this.leagueData().InvitationCode}`;
         
         navigator.clipboard.writeText(enlace).then(() => {
             // 🔥 Añadido mensaje visual con tu NotificationService
@@ -477,7 +516,7 @@ export class League implements OnInit {
     
     shouldShowMatch(match: any): boolean {
         const filterId = this.selectedPlayerId();
-
+        
         // Si no hay filtro seleccionado, mostramos todos los partidos
         if (!filterId) {
         return true;
@@ -485,13 +524,13 @@ export class League implements OnInit {
         let find = false;
 
         for(let player of match.JugadoresLocalNames){
-            if(player.IDPlayer == filterId){
+            if(player.IDLeaguePlayer == filterId){
                 return true;
             }
         }
 
         for(let player of match.JugadoresVisitanteNames){
-            if(player.IDPlayer == filterId){
+            if(player.IDLeaguePlayer == filterId){
                 return true;
             }
         }
@@ -560,5 +599,10 @@ export class League implements OnInit {
             }
         }
     }
+
+    getUnclaimedPlayers() {
+        return this.classification().filter(p => p.IDPlayer === null || p.IDPlayer === undefined);
+    }
+
 
 }

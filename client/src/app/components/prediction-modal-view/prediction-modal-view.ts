@@ -23,10 +23,10 @@ export class PredictionModalView {
         effect(() => {
             const currentClassification = this.classification();
             const currentBetOrder : any[] = this.betOrder() ? this.betOrder().PredictOrder : [];
-
-            if (currentClassification.length > 0) {
+            
+            if (currentClassification && currentClassification.length > 0) {
                 // 🔮 Si el usuario ya tiene una apuesta guardada en la base de datos
-                if (currentBetOrder.length > 0) {
+                if (currentBetOrder && currentBetOrder.length > 0) {
 
                     // Mapeamos los IDs de la apuesta transformándolos en los objetos completos del jugador
                     const orderedPlayers = currentBetOrder

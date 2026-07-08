@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, Signal } from '@angular/core';
+import { Component, inject, input, model, output, signal, Signal } from '@angular/core';
 import { AuthService } from '../../../services/auth/auth.service';
 import { NotificationService } from '../../../services/notification/notification.service';
 import { CommonModule } from '@angular/common';
@@ -23,7 +23,8 @@ export class Clasification {
     currentName = signal<string>('');
 
 
-
+    showAddPlayerInput = model<boolean>(false);
+    newPlayerName = signal<string>('');
 
     private authService = inject(AuthService);
     private leaguesService = inject(LeaguesService);
@@ -32,6 +33,7 @@ export class Clasification {
     isEqualUser(playerName: string): boolean {
         return playerName === this.authService.currentUser()?.nombre;
     }
+
 
     /*onStartEdit(idPlayer: string) {
         // Buscamos el nombre que tiene actualmente (優先 NamePlayerLeague, si no NamePlayer)
@@ -47,6 +49,7 @@ export class Clasification {
         this.selectedPlayerId.set(playerId);
         this.editNameValue.set(currentName);
         this.currentName.set(currentName);
+
     }
 
     // 3. Función que guarda los cambios al pulsar el "tick"
@@ -89,5 +92,29 @@ export class Clasification {
         this.editNameValue.set('');
         this.currentName.set('');
     }
+    onSaveNewPlayer(playerName: string) {
+        if (!playerName.trim()) return; // Evitar guardar si está vacío
 
+        console.log('Guardando nuevo jugador:', playerName);
+
+        // Aquí llamas a tu servicio HTTP para guardar al jugador en la BD
+        // this.leagueService.addPlayer(...).subscribe(...)
+        this.leaguesService.createPlayerInLeague({
+            IDLeague: this.idLeague().toString(),
+            IDPlayer: this.authService.currentUser()?.idPlayer.toString() || '',
+            NamePlayerLeague: playerName.trim()
+        }).subscribe({
+            next: (res) => {
+                console.log('Jugador agregado con éxito:', res);
+                this.notifService.show('Jugador agregado con éxito', 'success');
+                this.showAddPlayerInput.set(false);
+                this.onLeagueDataRefresh.emit();
+            },
+            error: (err) => {
+                console.error('Error al agregar jugador:', err);
+                this.notifService.show(err.error?.message || 'Error al agregar jugador', 'error');
+            }
+        });
+
+    }
 }

@@ -18,7 +18,7 @@ export class MyMatches {
 
     protected myMatches = signal<any[]>([]);
     protected selectedMatch = signal<any>(null);
-    protected useNamePlayerLeague = signal<boolean>(false);
+    protected useNamePlayerLeague = signal<boolean>(true);
 
     selectedLeague = signal<string>('');
 

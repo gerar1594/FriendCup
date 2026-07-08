@@ -94,7 +94,7 @@ export class AuthComponent implements OnInit {
                         console.log('🔗 Código de invitación pendiente detectado:', pendingCode);
 
                         // Te unes a la liga de golpe y te redirige a ella
-                        this.leaguesService.joinLeague({
+                        /*this.leaguesService.joinLeague({
                             InvitationCode: pendingCode, 
                             IDPlayer: this.authService.currentUser().idPlayer
                         }).subscribe({
@@ -104,7 +104,7 @@ export class AuthComponent implements OnInit {
                                 this.notificationService.show('No se pudo unir a la liga con el código proporcionado. Redirigiendo al dashboard.' + err.error?.message, 'error');
                                 this.router.navigate(['/leagues/manage']);
                             }
-                        });
+                        });*/
                     } else {
                         // Si no hay invitación, al dashboard normal
                         this.router.navigate(['/']);
