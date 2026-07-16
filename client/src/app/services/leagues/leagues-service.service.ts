@@ -20,17 +20,22 @@ export class LeaguesService {
     private refreshLeagues$ = new Subject<void>();
     userLeagues = signal<any[]>([]);
 
+    private lastLoadedUserId: number | string | null = null;
+
     constructor() {
         effect(() => {
             const usuario = this.authService.currentUser();
-            console.log('🔍 Efecto de LeaguesService detectó cambio en usuario:', usuario);
+            
             if (usuario && usuario.idPlayer) {
-                // En cuanto el usuario se loguea (deja de ser null), 
-                // el efecto se entera solo y dispara la recarga del menú instantáneamente
-                console.log('🔄 Detectado login de usuario. Cargando ligas para ID:', usuario.idPlayer);
-                this.loadUserOrAdminLeagues(usuario.idPlayer);
+                // 💡 Condición: Solo hacemos la petición si es un usuario distinto al que ya cargamos
+                if (this.lastLoadedUserId !== usuario.idPlayer) {
+                    console.log('🔄 Cargando ligas para ID:', usuario.idPlayer);
+                    this.lastLoadedUserId = usuario.idPlayer; // Guardamos en memoria
+                    this.loadUserOrAdminLeagues(usuario.idPlayer);
+                }
             } else {
-                // Si se desloguea, limpiamos el menú lateral
+                // Si se desloguea, limpiamos la memoria y las ligas
+                this.lastLoadedUserId = null;
                 this.userLeagues.set([]);
             }
         });
@@ -43,11 +48,15 @@ export class LeaguesService {
 
     // Método para disparar el aviso de actualización
     triggerRefresh() {
+        console.log('📢 triggerRefresh activado. Forzando recarga de ligas...');
         const usuario = this.authService.currentUser();
+
         if (usuario && usuario.idPlayer) {
-            console.log('📢 triggerRefresh activado. Recargando ligas desde la API...');
+            // Hacemos la llamada directa a la API
             this.loadUserOrAdminLeagues(usuario.idPlayer);
         }
+
+        // Avisamos a los componentes suscritos (si tienes alguno escuchando este Subject)
         this.refreshLeagues$.next();
     }
 

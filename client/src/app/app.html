@@ -1,5 +1,16 @@
 <app-navbar></app-navbar>
 
+<!-- Nueva sintaxis de control de flujo de Angular -->
+@if (loadingService.isLoading()) {
+  <div class="spinner-overlay">
+    <div class="spinner-container">
+      <div class="custom-spinner"></div>
+      <p class="loading-text">Despertando al servidor, por favor espera un momento...</p>
+      <span class="loading-subtext">(Esto puede tardar hasta 50 segundos en la primera carga)</span>
+    </div>
+  </div>
+}
+
 <main class="container m-auto">
     <router-outlet></router-outlet>
 </main>

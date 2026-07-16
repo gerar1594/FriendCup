@@ -268,12 +268,12 @@ export class MatchChat implements OnInit, OnDestroy {
 
             // 🚀 EL TRUCO: Guardamos la fecha en formato ISO plano terminando en 'Z' (UTC absoluto)
             // Esto le dice a cualquier dispositivo del mundo (PC, iPhone, Android): "No toques las horas"
-            const finalIsoString = `${year}-${month}-${day}T${hour}:${minute}:00.000Z`;
-            
+            const finalIsoString = `${year}-${month}-${day}T${hour}:${minute}:00.000`;
+
             console.log('✈️ Enviando al servidor con zona horaria blindada:', finalIsoString);
             this.chatService.sendDateProposal(this.match.IDMatch, finalIsoString as any);
         }
-        
+
         this.dateInput.set('');
     }
 

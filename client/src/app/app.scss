@@ -1,0 +1,50 @@
+/* Fondo oscuro semitransparente que cubre toda la pantalla */
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.85); /* Cambiar a rgba(0,0,0,0.7) si usas modo oscuro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Asegura que esté por encima de todo */
+}
+
+/* Contenedor del texto y spinner */
+.spinner-container {
+  text-align: center;
+  font-family: sans-serif;
+}
+
+/* El círculo del spinner animado */
+.custom-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #e5e7eb;
+  border-top: 5px solid #3b82f6; /* Color azul, puedes cambiarlo por el de tu app */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px auto;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.loading-subtext {
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: block;
+  margin-top: 5px;
+}
+
+/* Animación de rotación */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

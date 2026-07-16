@@ -5,6 +5,7 @@ import { LeaguesService } from './services/leagues/leagues-service.service';
 import { AuthService } from './services/auth/auth.service';
 import { Toast } from "./components/toast/toast";
 import { environment } from '../environments/environment';
+import { LoadingService } from './services/loading/loading.service';
 
 @Component({
     selector: 'app-root',
@@ -17,7 +18,7 @@ export class App implements OnInit {
     private leaguesService = inject(LeaguesService);
     authService = inject(AuthService);
     
-    constructor(@Inject(DOCUMENT) private document: Document) {}
+    constructor(@Inject(DOCUMENT) private document: Document, public loadingService: LoadingService) {}
 
     ngOnInit() {
         // 🚀 Cargamos las ligas aquí para que estén listas en toda la aplicación

@@ -1,6 +1,6 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { AuthService } from './auth.service';
+import { AuthService } from '../../services/auth/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     // Accedemos al ID del usuario actual desde tu servicio de autenticación

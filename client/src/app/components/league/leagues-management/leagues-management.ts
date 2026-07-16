@@ -42,7 +42,6 @@ export class LeaguesManagementComponent implements OnInit {
         // Ajustado para capturar tu IDPlayer del usuario logueado
         if (user && user.idPlayer) {
             this.idPlayer.set(user.idPlayer);
-            this.leaguesService.triggerRefresh();
             this.sportService.getSport().subscribe({
                 next:(res) => {
                     this.sports.set(res);

@@ -515,6 +515,7 @@ class MatchController {
             m.DayTrip,
             m.Estado,
             m.Resultado,
+            IF(m.Fecha IS NULL OR YEAR(m.Fecha) < 2000, NULL, m.Fecha) AS Fecha,
             m.JugadoresLocal,      -- 👈 Añadimos el texto plano por si no hay registros
             m.JugadoresVisitante,  -- 👈 Añadimos el texto plano por si no hay registros
             l.NameLeague,
@@ -696,7 +697,7 @@ class MatchController {
 
                 console.log(JSON.stringify(marcadorJSON), nuevoEstado, winner);
                 await connection.query(
-                    "UPDATE matches SET Resultado = '" + JSON.stringify(marcadorJSON) +"', Estado = '" + nuevoEstado + "', Winner = " + winner + " WHERE IDMatch = ?",
+                    "UPDATE matches SET Resultado = '" + JSON.stringify(marcadorJSON) +"', Estado = '" + nuevoEstado + "', Winner = " + winner + ", UpdateBy = " + currentUserId + ", UpdateAt = NOW() WHERE IDMatch = ?",
                     [idMatch]
                 );
 
@@ -800,7 +801,7 @@ class MatchController {
                 // 4. CAMBIO DE ESTADO DEL PARTIDO EN 'matches'
                 // ==========================================================
                 await connection.query(
-                    "UPDATE matches SET Estado = ? WHERE IDMatch = ?",
+                    "UPDATE matches SET Estado = ?, UpdateBy = " + currentUserId + ", UpdateAt = NOW()  WHERE IDMatch = ?",
                     [nuevoEstado, idMatch]
                 );
                 await connection.commit();
@@ -928,9 +929,9 @@ class MatchController {
 
                 await connection.query(
                     `UPDATE matches 
-                    SET Resultado = ?, Estado = 'Jugado', Winner = ? 
+                    SET Resultado = ?, Estado = 'Jugado', Winner = ?, UpdateBy = ?, UpdateAt = NOW()
                     WHERE IDMatch = ?`,
-                    [JSON.stringify(marcadorJSON), winner, idMatch]
+                    [JSON.stringify(marcadorJSON), winner, currentUserId, idMatch]
                 );
 
                 // Reutilizamos el motor interno pasando la conexión transaccional
@@ -1262,8 +1263,8 @@ class MatchController {
                 // 3. Actualizamos la fecha del partido en la base de datos
                 // Nota: Asegúrate de que el nombre de la columna coincida con tu tabla (ej: 'Fecha')
                 await connection.query(
-                    "UPDATE matches SET Fecha = ? WHERE IDMatch = ?",
-                    [fecha, idMatch]
+                    "UPDATE matches SET Fecha = ?, UpdateBy = ?, UpdateAt = NOW() WHERE IDMatch = ?",
+                    [fecha, currentUserId, idMatch]
                 );
 
                 await connection.commit();
@@ -1419,9 +1420,9 @@ class MatchController {
                 // =================================================================
                 await connection.query(
                     `UPDATE matches 
-                    SET Resultado = ?, Estado = 'Jugado', Winner = ? 
+                    SET Resultado = ?, Estado = 'Jugado', Winner = ?, UpdateBy = ?, UpdateAt = NOW()
                     WHERE IDMatch = ?`,
-                    [JSON.stringify(nuevoMarcadorJSON), nuevoWinner, idMatch]
+                    [JSON.stringify(nuevoMarcadorJSON), nuevoWinner, currentUserId, idMatch]
                 );
 
                 // =================================================================

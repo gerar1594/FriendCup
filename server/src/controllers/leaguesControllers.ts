@@ -42,42 +42,50 @@ class LeaguesController{
     }
 
     public async getLeaguesByUserOrAdmin(req: Request, res: Response): Promise<void> {
-        const { idplayer } = req.params;
+        try {
+            const { idplayer } = req.params;
 
-        const [leagues] = await pool.query(
-            `SELECT 
-                L.*, 
-                S.*,
-                EXISTS(
-                    SELECT 1 
-                    FROM likeleagueplayer LLP 
-                    WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
-                ) AS isFavorite
-            FROM leagues L
-            JOIN sports S ON L.IDSport = S.IDSport
-            WHERE 
-                L.IDAdmin = ?                               -- 1. Eres el creador/admin
-                OR EXISTS (
-                    SELECT 1 
-                    FROM leagueplayer LP 
-                    WHERE LP.IDLeague = L.IDLeague AND LP.IDPlayer = ?
-                )                                           -- 2. Eres jugador inscrito
-                OR EXISTS (
-                    SELECT 1 
-                    FROM likeleagueplayer LLP 
-                    WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
-                )                                           -- 3. 🌟 NUEVO: La tienes en favoritos
-            GROUP BY L.IDLeague
-            ORDER BY L.NameLeague ASC;`,
-            [idplayer, idplayer, idplayer, idplayer]
-        );
+            const [leagues]: any = await pool.query(
+                `SELECT 
+                    L.*, 
+                    S.*,
+                    EXISTS(
+                        SELECT 1 
+                        FROM likeleagueplayer LLP 
+                        WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                    ) AS isFavorite
+                FROM leagues L
+                JOIN sports S ON L.IDSport = S.IDSport
+                WHERE 
+                    L.IDAdmin = ?                               -- 1. Eres el creador/admin
+                    OR EXISTS (
+                        SELECT 1 
+                        FROM leagueplayer LP 
+                        WHERE LP.IDLeague = L.IDLeague AND LP.IDPlayer = ?
+                    )                                           -- 2. Eres jugador inscrito
+                    OR EXISTS (
+                        SELECT 1 
+                        FROM likeleagueplayer LLP 
+                        WHERE LLP.IDLeague = L.IDLeague AND LLP.IDPlayer = ?
+                    )                                           -- 3. 🌟 NUEVO: La tienes en favoritos
+                GROUP BY L.IDLeague
+                ORDER BY L.NameLeague ASC;`,
+                [idplayer, idplayer, idplayer, idplayer]
+            );
 
+            // Verificamos que el array tenga más de 0 elementos
+            if (leagues && leagues.length > 0) {
+                res.json(leagues);
+            } else {
+                // Nota: En APIs REST, devolver res.json([]) (un array vacío con status 200) 
+                // a veces es más limpio que un 404, pero lo dejo como lo tenías configurado.
+                res.status(404).json({ message: "No se encontraron ligas para este jugador" });
+            }
 
-        if (leagues) {
-            res.json(leagues);
-        }
-        else {
-            res.status(404).json({ message: "No se encontraron ligas para este jugador" });
+        } catch (error) {
+            // 👇 ¡ESTO SALVA TU APP! Atrapa el error y cierra la petición correctamente
+            console.error("🔥 Error crítico en getLeaguesByUserOrAdmin:", error);
+            res.status(500).json({ message: "Error interno del servidor al obtener las ligas", error });
         }
     }
 
